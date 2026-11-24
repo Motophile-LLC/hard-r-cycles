@@ -1,0 +1,258 @@
+{
+  "generatedAt": "2026-11-24T02:51:15.848Z",
+  "source": "D:\\HardRToons\\Assets",
+  "targetHeight": 512,
+  "characters": {
+    "mechanic": {
+      "idle": {
+        "frame": "/sprites/characters/mechanic/idle.png",
+        "width": 192,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "celebrate": {
+        "frame": "/sprites/characters/mechanic/celebrate.png",
+        "width": 232,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "facepalm": {
+        "frame": "/sprites/characters/mechanic/facepalm.png",
+        "width": 142,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "wrenching": {
+        "frame": "/sprites/characters/mechanic/wrenching.png",
+        "width": 410,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "panicked": {
+        "frame": "/sprites/characters/mechanic/panicked.png",
+        "width": 410,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "electrocuted": {
+        "frame": "/sprites/characters/mechanic/electrocuted.png",
+        "width": 410,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "service-writer": {
+      "calm": {
+        "frame": "/sprites/characters/service-writer/calm.png",
+        "width": 206,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "pacing": {
+        "frame": "/sprites/characters/service-writer/pacing.png",
+        "width": 154,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "shop-buddy": {
+      "idle": {
+        "frame": "/sprites/characters/shop-buddy/idle.png",
+        "width": 214,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "talking": {
+        "frame": "/sprites/characters/shop-buddy/talking.png",
+        "width": 206,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "borrowing": {
+        "frame": "/sprites/characters/shop-buddy/borrowing.png",
+        "width": 206,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "dismissed": {
+        "frame": "/sprites/characters/shop-buddy/dismissed.png",
+        "width": 224,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "v": {
+      "front": {
+        "frame": "/sprites/characters/v/front.png",
+        "width": 212,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "three-quarter": {
+        "frame": "/sprites/characters/v/three-quarter.png",
+        "width": 224,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "profile": {
+        "frame": "/sprites/characters/v/profile.png",
+        "width": 134,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "back-three-quarter": {
+        "frame": "/sprites/characters/v/back-three-quarter.png",
+        "width": 148,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "action": {
+        "frame": "/sprites/characters/v/action.png",
+        "width": 380,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "customers": {
+      "customer-1": {
+        "frame": "/sprites/characters/customers/customer-1.png",
+        "width": 232,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "customer-2": {
+        "frame": "/sprites/characters/customers/customer-2.png",
+        "width": 262,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "customer-3": {
+        "frame": "/sprites/characters/customers/customer-3.png",
+        "width": 242,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    }
+  },
+  "bikes": {
+    "club-dyna": {
+      "frame": "/sprites/bikes/club-dyna.png",
+      "width": 842,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "bigwheel-bagger": {
+      "frame": "/sprites/bikes/bigwheel-bagger.png",
+      "width": 938,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "track-bagger": {
+      "frame": "/sprites/bikes/track-bagger.png",
+      "width": 774,
+      "height": 512,
+      "anchor": "bottom-center"
+    }
+  },
+  "portraits": {
+    "dick-front": {
+      "frame": "/sprites/portraits/dick-front.png",
+      "width": 224,
+      "height": 256
+    },
+    "dick-wtf": {
+      "frame": "/sprites/portraits/dick-wtf.png",
+      "width": 256,
+      "height": 256
+    },
+    "apprentice-duh": {
+      "frame": "/sprites/portraits/apprentice-duh.png",
+      "width": 206,
+      "height": 256
+    },
+    "dynabro": {
+      "frame": "/sprites/portraits/dynabro.png",
+      "width": 206,
+      "height": 256
+    },
+    "customer-1": {
+      "frame": "/sprites/portraits/customer-1.png",
+      "width": 214,
+      "height": 256
+    },
+    "customer-2": {
+      "frame": "/sprites/portraits/customer-2.png",
+      "width": 222,
+      "height": 256
+    },
+    "customer-3": {
+      "frame": "/sprites/portraits/customer-3.png",
+      "width": 200,
+      "height": 256
+    },
+    "v-eyeroll": {
+      "frame": "/sprites/portraits/v-eyeroll.png",
+      "width": 204,
+      "height": 256
+    },
+    "v-smirk": {
+      "frame": "/sprites/portraits/v-smirk.png",
+      "width": 220,
+      "height": 256
+    }
+  },
+  "props": {
+    "motorcycle-lift": {
+      "frame": "/sprites/props/motorcycle-lift.png",
+      "width": 822,
+      "height": 512
+    },
+    "tool-chest": {
+      "frame": "/sprites/props/tool-chest.png",
+      "width": 436,
+      "height": 512
+    },
+    "oil-pan": {
+      "frame": "/sprites/props/oil-pan.png",
+      "width": 823,
+      "height": 512
+    },
+    "breaker-box": {
+      "frame": "/sprites/props/breaker-box.png",
+      "width": 276,
+      "height": 512
+    }
+  },
+  "tools": {
+    "torque_wrench": {
+      "frame": "/sprites/props/tools/torque_wrench.png",
+      "width": 255,
+      "height": 256
+    },
+    "impact_gun": {
+      "frame": "/sprites/props/tools/impact_gun.png",
+      "width": 312,
+      "height": 256
+    },
+    "propane_torch": {
+      "frame": "/sprites/props/tools/propane_torch.png",
+      "width": 94,
+      "height": 256
+    },
+    "ez_out": {
+      "frame": "/sprites/props/tools/ez_out.png",
+      "width": 250,
+      "height": 256
+    },
+    "multimeter": {
+      "frame": "/sprites/props/tools/multimeter.png",
+      "width": 251,
+      "height": 256
+    },
+    "brake_cleaner": {
+      "frame": "/sprites/props/tools/brake_cleaner.png",
+      "width": 101,
+      "height": 256
+    }
+  }
+}

@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --target-size: 24px;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --target-size: 48px;
+  }
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  background: #1c1917;
+  color: #111111;
+  overflow-wrap: break-word;
+  font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+:where(
+  button,
+  select,
+  textarea,
+  input:not([type="checkbox"], [type="radio"]),
+  [role="button"],
+  label:has(input[type="checkbox"], input[type="radio"])
+) {
+  min-block-size: var(--target-size);
+  min-inline-size: var(--target-size);
+  touch-action: manipulation;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+.touch-hold-surface {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Native <dialog> scroll containment rules */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(10, 10, 14, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+/* Validation only surfaces after interaction */
+.form-control:is(:user-invalid, .user-invalid-fallback) {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" role="img" aria-label="Hard R Cycles Logo">
+  <rect width="800" height="420" fill="#000000" />
+  <rect x="26" y="24" width="748" height="372" fill="none" stroke="#ffffff" stroke-width="16" />
+  <rect x="48" y="46" width="704" height="328" fill="none" stroke="#ffffff" stroke-width="7" />
+
+  <!-- Bold industrial stencil HARD R -->
+  <g fill="#ffffff" font-family="'Impact', 'Arial Black', 'Bahnschrift', sans-serif" font-weight="900" font-size="184" text-anchor="middle">
+    <text x="400" y="244" letter-spacing="10">HARD R</text>
+  </g>
+  <!-- Stencil bridge cuts for authentic military/shop stencil look -->
+  <g fill="#000000">
+    <rect x="148" y="96" width="5" height="156" />
+    <rect x="242" y="96" width="5" height="156" />
+    <rect x="339" y="96" width="5" height="156" />
+    <rect x="441" y="96" width="5" height="156" />
+    <rect x="593" y="96" width="5" height="156" />
+  </g>
+
+  <!-- CYCLES inverted white plaque -->
+  <rect x="205" y="274" width="390" height="70" fill="#ffffff" />
+  <text
+    x="400"
+    y="330"
+    fill="#000000"
+    font-family="'Impact', 'Arial Black', 'Bahnschrift', sans-serif"
+    font-weight="900"
+    font-size="60"
+    letter-spacing="12"
+    text-anchor="middle"
+  >CYCLES</text>
+  <!-- Stencil vertical breaks across CYCLES -->
+  <g fill="#ffffff">
+    <rect x="242" y="274" width="4" height="70" />
+    <rect x="303" y="274" width="4" height="70" />
+    <rect x="364" y="274" width="4" height="70" />
+    <rect x="425" y="274" width="4" height="70" />
+    <rect x="486" y="274" width="4" height="70" />
+    <rect x="546" y="274" width="4" height="70" />
+  </g>
+</svg>
