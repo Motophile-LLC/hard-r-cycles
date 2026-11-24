@@ -133,3 +133,41 @@ export interface ActiveAmbientCustomer {
   spawnedAt: number;
   expiresAt: number;
 }
+
+export interface GarageBike {
+  id: string;
+  year: string;
+  make: string;
+  model: string;
+  vin: string;
+  notes: string;
+}
+
+export interface ShippingAddress {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  display_name: string;
+  mechanic_handle: string;
+  avatar_url: string | null;
+  auth_provider: string;
+  role: 'customer' | 'admin';
+  phone: string;
+  shirt_size: string;
+  default_shipping_address: ShippingAddress | null;
+  garage_bikes: GarageBike[];
+  marketing_opt_in: boolean;
+  sign_in_count: number;
+  last_seen_at: string;
+  created_at: string;
+}

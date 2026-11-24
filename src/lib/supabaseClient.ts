@@ -49,6 +49,7 @@ export function getSupabaseBrowserAuthClient(): SupabaseClient | null {
 
   cachedAuthClient = createClient(env.url, env.key, {
     auth: {
+      flowType: 'pkce',
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,

@@ -1,37 +1,47 @@
 'use client';
 
 import {
-  CheckCircle2,
-  Eye,
-  EyeOff,
+  Bike,
   Gift,
   LogOut,
   Package,
   Plus,
   RefreshCw,
+  Search,
   ShieldAlert,
   ShieldCheck,
+  ShieldOff,
   Trash2,
   Upload,
+  Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { SsoSignInButtons } from '@/components/auth/SsoSignInButtons';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
-import type { CheckoutMode, RackSlot, ShopDepartment, ShopProduct } from '@/types/shop';
+import type {
+  CheckoutMode,
+  RackSlot,
+  ShopDepartment,
+  ShopProduct,
+  UserProfile,
+} from '@/types/shop';
 
 interface AdminStatusPayload {
-  supabaseUrlConfigured: boolean;
-  publishableKeyConfigured: boolean;
-  supabaseSecretConfigured: boolean;
-  adminAllowlistConfigured: boolean;
-  stripeSecretConfigured: boolean;
-  stripeWebhookConfigured: boolean;
-  printfulConfigured: boolean;
-  adminWritesReady: boolean;
-  stripeCheckoutReady: boolean;
   authenticated: boolean;
   authorizedAdmin: boolean;
+  isSuperAdmin?: boolean;
   adminEmail?: string;
   authError?: string;
+}
+
+interface AdminUserRow extends UserProfile {
+  notes: string;
+  isSuperAdmin: boolean;
+  orderCount: number;
+  lifetimeSpend: number;
+  shiftCount: number;
+  bestEfficiency: number;
+  rewardCount: number;
 }
 
 interface AdminOrderRow {
@@ -86,20 +96,14 @@ interface AdminLeaderboardRow {
 export function AdminDashboardClient() {
   const [status, setStatus] = useState<AdminStatusPayload | null>(null);
   const [accessToken, setAccessToken] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'rewards'>('products');
+  const [activeTab, setActiveTab] = useState<'users' | 'products' | 'orders' | 'rewards'>('users');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Sign-in form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [passwordTouched, setPasswordTouched] = useState(false);
-  const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
-
   // Admin workspace data
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [adminProducts, setAdminProducts] = useState<ShopProduct[]>([]);
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>({});
@@ -123,12 +127,6 @@ export function AdminDashboardClient() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
 
-  const emailInvalid =
-    (emailTouched || submitAttempted) &&
-    (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
-  const passwordInvalid =
-    (passwordTouched || submitAttempted) && password.length < 6;
-
   const refreshStatus = useCallback(async (token?: string) => {
     try {
       const res = await fetch('/api/admin/status', {
@@ -151,12 +149,23 @@ export function AdminDashboardClient() {
     setActionError(null);
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const [prodRes, ordRes, rewRes] = await Promise.all([
+      const [usrRes, prodRes, ordRes, rewRes] = await Promise.all([
+        fetch('/api/admin/users', { headers }),
         fetch('/api/admin/products', { headers }),
         fetch('/api/admin/orders', { headers }),
         fetch('/api/admin/rewards', { headers }),
       ]);
 
+      if (usrRes.ok) {
+        const uJson = (await usrRes.json()) as { users?: AdminUserRow[] };
+        const loadedUsers = uJson.users ?? [];
+        setUsers(loadedUsers);
+        const nextNotes: Record<string, string> = {};
+        for (const u of loadedUsers) {
+          nextNotes[u.id] = u.notes ?? '';
+        }
+        setNoteDrafts(nextNotes);
+      }
       if (prodRes.ok) {
         const pJson = (await prodRes.json()) as { products?: ShopProduct[] };
         setAdminProducts(pJson.products ?? []);
@@ -227,63 +236,69 @@ export function AdminDashboardClient() {
     };
   }, [refreshStatus, loadWorkspaceData]);
 
-  const handleSignIn = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmitAttempted(true);
-    setActionError(null);
-    setActionNotice(null);
-
-    if (
-      !email.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
-      password.length < 6
-    ) {
-      return;
-    }
-
-    const authClient = getSupabaseBrowserAuthClient();
-    if (!authClient) {
-      setActionError('Supabase client keys are missing in .env.local.');
-      return;
-    }
-
-    setSigningIn(true);
-    try {
-      const { data, error } = await authClient.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error || !data.session?.access_token) {
-        setActionError(error?.message ?? 'Invalid email or password.');
-        return;
-      }
-      const token = data.session.access_token;
-      setAccessToken(token);
-      const nextStatus = await refreshStatus(token);
-      if (nextStatus?.authorizedAdmin) {
-        setActionNotice(`Signed in as ${nextStatus.adminEmail}`);
-        void loadWorkspaceData(token);
-      } else {
-        setActionError(
-          nextStatus?.authError ?? 'Signed in, but this account is not on ADMIN_EMAILS.',
-        );
-      }
-    } finally {
-      setSigningIn(false);
-    }
-  };
-
   const handleSignOut = async () => {
     const authClient = getSupabaseBrowserAuthClient();
     if (authClient) {
       await authClient.auth.signOut();
     }
     setAccessToken('');
+    setUsers([]);
     setAdminProducts([]);
     setOrders([]);
     setRewardClaims([]);
     setActionNotice(null);
+    setActionError(null);
     await refreshStatus();
+  };
+
+  const handleToggleUserRole = async (userRow: AdminUserRow) => {
+    if (!accessToken || userRow.isSuperAdmin) return;
+    const nextRole = userRow.role === 'admin' ? 'customer' : 'admin';
+    setActionError(null);
+    setActionNotice(null);
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: userRow.id, role: nextRole }),
+    });
+    const json = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      setActionError(json.error ?? 'Unable to update user role.');
+      return;
+    }
+    setActionNotice(
+      nextRole === 'admin'
+        ? `Granted Admin SSO access to ${userRow.email}.`
+        : `Revoked Admin access for ${userRow.email}.`,
+    );
+    await loadWorkspaceData(accessToken);
+  };
+
+  const handleSaveUserNote = async (userId: string) => {
+    if (!accessToken) return;
+    setActionError(null);
+    setActionNotice(null);
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: userId,
+        notes: noteDrafts[userId] ?? '',
+      }),
+    });
+    const json = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      setActionError(json.error ?? 'Unable to save note.');
+      return;
+    }
+    setActionNotice('Saved internal rider note.');
+    await loadWorkspaceData(accessToken);
   };
 
   const handleUploadFile = async (file: File | undefined) => {
@@ -401,70 +416,27 @@ export function AdminDashboardClient() {
     }
   };
 
+  const filteredUsers = users.filter((u) => {
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return true;
+    const bikesText = Array.isArray(u.garage_bikes)
+      ? u.garage_bikes
+          .map((b) => `${b.year} ${b.make} ${b.model} ${b.vin} ${b.notes}`)
+          .join(' ')
+          .toLowerCase()
+      : '';
+    return (
+      u.email.toLowerCase().includes(q) ||
+      u.display_name.toLowerCase().includes(q) ||
+      u.mechanic_handle.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q) ||
+      u.phone.toLowerCase().includes(q) ||
+      bikesText.includes(q)
+    );
+  });
+
   return (
     <section className="space-y-4">
-      {/* Setup Readiness Checklist */}
-      <div className="rounded-3xl border-4 border-black bg-white p-4 shadow-[6px_6px_0px_#000]">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/15 pb-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-emerald-700" aria-hidden="true" />
-            <h2 className="text-base font-black uppercase">
-              Deployment &amp; Commerce Setup Readiness
-            </h2>
-          </div>
-          {status?.authorizedAdmin ? (
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg border-2 border-black bg-emerald-300 px-2.5 py-1 text-xs font-black">
-                Admin: {status.adminEmail}
-              </span>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-zinc-100 px-3 text-xs font-black uppercase hover:bg-red-100"
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Sign Out
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              label: 'Supabase URL & Key',
-              ok: Boolean(status?.supabaseUrlConfigured && status?.publishableKeyConfigured),
-            },
-            {
-              label: 'SUPABASE_SECRET_KEY',
-              ok: Boolean(status?.supabaseSecretConfigured),
-            },
-            {
-              label: 'ADMIN_EMAILS Allowlist',
-              ok: Boolean(status?.adminAllowlistConfigured),
-            },
-            {
-              label: 'Stripe Secret & Webhook',
-              ok: Boolean(status?.stripeSecretConfigured && status?.stripeWebhookConfigured),
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`flex items-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-xs font-black ${
-                item.ok ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
-              }`}
-            >
-              {item.ok ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-              ) : (
-                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
-              )}
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Notifications */}
       {actionNotice ? (
         <div
@@ -483,148 +455,274 @@ export function AdminDashboardClient() {
         </div>
       ) : null}
 
-      {/* Gate: Sign-In Form vs Authenticated Admin Workspace */}
+      {/* Gate: Google & Apple SSO vs Authenticated Admin Workspace */}
       {!status?.authorizedAdmin ? (
-        <form
-          onSubmit={handleSignIn}
-          noValidate
-          className="rounded-3xl border-4 border-black bg-amber-50 p-5 shadow-[6px_6px_0px_#000]"
-        >
-          <fieldset className="space-y-4">
-            <legend className="text-lg font-black uppercase text-black">
-              Shop Owner Sign-In (Supabase Auth)
-            </legend>
-            <p className="text-xs font-bold text-zinc-700">
-              Sign in with an email listed in server <code className="rounded bg-white px-1">ADMIN_EMAILS</code> to manage Hard R Originals, upload product photos, fulfill DIY packing lists, and review rewards.
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="admin-email"
-                  className="mb-1 block text-xs font-black uppercase text-zinc-800"
-                >
-                  Admin Email
-                </label>
-                <input
-                  id="admin-email"
-                  type="email"
-                  name="username"
-                  autoComplete="username"
-                  spellCheck={false}
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => setEmailTouched(true)}
-                  aria-invalid={emailInvalid ? 'true' : 'false'}
-                  aria-describedby={emailInvalid ? 'admin-email-error' : undefined}
-                  placeholder="owner@hardrcycles.com"
-                  className={`form-control min-h-12 w-full rounded-xl border-3 border-black bg-white px-3.5 py-2 text-base font-bold text-black placeholder:text-zinc-400 ${
-                    emailInvalid ? 'user-invalid-fallback' : ''
-                  }`}
-                />
-                {emailInvalid ? (
-                  <p id="admin-email-error" role="alert" className="mt-1 text-xs font-bold text-red-700">
-                    Enter a valid admin email address.
-                  </p>
-                ) : null}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="admin-password"
-                  className="mb-1 block text-xs font-black uppercase text-zinc-800"
-                >
-                  Password
-                </label>
-                <div className="flex gap-1.5">
-                  <input
-                    id="admin-password"
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    autoComplete="current-password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onBlur={() => setPasswordTouched(true)}
-                    aria-invalid={passwordInvalid ? 'true' : 'false'}
-                    aria-describedby={passwordInvalid ? 'admin-password-error' : undefined}
-                    placeholder="Enter password"
-                    className={`form-control min-h-12 min-w-0 flex-1 rounded-xl border-3 border-black bg-white px-3.5 py-2 text-base font-bold text-black placeholder:text-zinc-400 ${
-                      passwordInvalid ? 'user-invalid-fallback' : ''
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    aria-pressed={showPassword}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="flex min-h-12 min-w-12 cursor-pointer items-center justify-center rounded-xl border-3 border-black bg-white text-black hover:bg-zinc-100"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-5 w-5" aria-hidden="true" />
-                    )}
-                  </button>
-                </div>
-                {passwordInvalid ? (
-                  <p id="admin-password-error" role="alert" className="mt-1 text-xs font-bold text-red-700">
-                    Password must be at least 6 characters.
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={signingIn}
-              className="min-h-12 cursor-pointer rounded-2xl border-4 border-black bg-amber-400 px-6 text-sm font-black uppercase text-black shadow-[4px_4px_0px_#000] hover:bg-amber-300 disabled:opacity-50"
-            >
-              {signingIn ? 'Signing In...' : 'Sign In to Admin Console →'}
-            </button>
-          </fieldset>
-        </form>
-      ) : (
         <div className="space-y-4 rounded-3xl border-4 border-black bg-amber-50 p-5 shadow-[6px_6px_0px_#000]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'products' as const, label: `Products & Upload (${adminProducts.length})` },
-                { id: 'orders' as const, label: `Orders & DIY Queue (${orders.length})` },
-                { id: 'rewards' as const, label: `Rewards & Scores (${rewardClaims.length})` },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveTab(t.id)}
-                  className={`min-h-12 cursor-pointer rounded-2xl border-3 border-black px-4 text-xs font-black uppercase ${
-                    activeTab === t.id
-                      ? 'bg-zinc-900 text-amber-300 shadow-[3px_3px_0px_#000]'
-                      : 'bg-white text-black hover:bg-amber-100'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" aria-hidden="true" />
+            <div>
+              <h2 className="text-lg font-black uppercase text-black">
+                Admin Access — Sign In with Google or Apple
+              </h2>
+              <p className="mt-1 text-xs font-bold text-zinc-700">
+                Sign in with an owner email or any user granted Admin access in{' '}
+                <code className="rounded bg-white px-1">Users &amp; Admins</code>.
+              </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => loadWorkspaceData(accessToken)}
-              disabled={loadingWorkspace}
-              className="flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 text-xs font-black uppercase hover:bg-zinc-100"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${loadingWorkspace ? 'animate-spin' : ''}`}
-                aria-hidden="true"
-              />
-              Refresh
-            </button>
           </div>
 
-          {/* TAB 1: PRODUCTS CRUD + UPLOAD */}
+          {status?.authenticated && status.authError ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-black bg-amber-100 p-3 text-xs font-bold text-amber-950">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-800" aria-hidden="true" />
+                <span>{status.authError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 text-xs font-black uppercase hover:bg-red-100"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Sign Out
+              </button>
+            </div>
+          ) : null}
+
+          <SsoSignInButtons nextPath="/admin" compact />
+        </div>
+      ) : (
+        <div className="space-y-4 rounded-3xl border-4 border-black bg-amber-50 p-5 shadow-[6px_6px_0px_#000]">
+          {/* Authenticated Header Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-black/15 pb-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-xl border-2 border-black bg-emerald-300 px-3 py-1.5 text-xs font-black text-black">
+                {status.isSuperAdmin ? 'Super Admin' : 'Admin'}: {status.adminEmail}
+              </span>
+              <span className="text-xs font-bold text-zinc-600">
+                {users.length} Registered Rider{users.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => loadWorkspaceData(accessToken)}
+                disabled={loadingWorkspace}
+                className="flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 text-xs font-black uppercase hover:bg-zinc-100"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${loadingWorkspace ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 text-xs font-black uppercase hover:bg-red-100"
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'users' as const, label: `Users & Admins (${users.length})` },
+              { id: 'products' as const, label: `Products & Upload (${adminProducts.length})` },
+              { id: 'orders' as const, label: `Orders & DIY Queue (${orders.length})` },
+              { id: 'rewards' as const, label: `Rewards & Scores (${rewardClaims.length})` },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={`min-h-12 cursor-pointer rounded-2xl border-3 border-black px-4 text-xs font-black uppercase ${
+                  activeTab === t.id
+                    ? 'bg-zinc-900 text-amber-300 shadow-[3px_3px_0px_#000]'
+                    : 'bg-white text-black hover:bg-amber-100'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB 1: USERS & ADMIN ACCESS */}
+          {activeTab === 'users' ? (
+            <div className="space-y-3">
+              <search className="block">
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Search riders by email, name, handle, VIN, or admin role..."
+                    aria-label="Search registered users"
+                    className="min-h-12 w-full rounded-2xl border-3 border-black bg-white py-2 pr-4 pl-10 text-base font-bold text-black placeholder:text-zinc-400"
+                  />
+                </div>
+              </search>
+
+              {filteredUsers.length === 0 ? (
+                <div className="rounded-2xl border-3 border-black bg-white p-6 text-center text-xs font-bold text-zinc-600">
+                  No matching riders yet. Users appear here automatically the moment they sign in via Google or Apple SSO.
+                </div>
+              ) : (
+                filteredUsers.map((usr) => {
+                  const bikes = Array.isArray(usr.garage_bikes) ? usr.garage_bikes : [];
+                  return (
+                    <div
+                      key={usr.id}
+                      className="space-y-3 rounded-2xl border-3 border-black bg-white p-4 shadow-[4px_4px_0px_#000]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Users className="h-4 w-4 text-zinc-700" aria-hidden="true" />
+                            <span className="text-sm font-black text-black">
+                              {usr.display_name || usr.full_name || usr.email}
+                            </span>
+                            <span className="rounded border border-black bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase">
+                              {usr.auth_provider}
+                            </span>
+                            <span
+                              className={`rounded border border-black px-2 py-0.5 text-[10px] font-black uppercase ${
+                                usr.isSuperAdmin
+                                  ? 'bg-emerald-400 text-black'
+                                  : usr.role === 'admin'
+                                    ? 'bg-sky-300 text-black'
+                                    : 'bg-zinc-200 text-zinc-700'
+                              }`}
+                            >
+                              {usr.isSuperAdmin
+                                ? 'Super Admin'
+                                : usr.role === 'admin'
+                                  ? 'Admin'
+                                  : 'Customer'}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-zinc-600">
+                            {usr.email} • Handle:{' '}
+                            <span className="text-black">{usr.mechanic_handle || '—'}</span> •
+                            Sign-ins: <span className="text-black">{usr.sign_in_count}</span>
+                          </p>
+                        </div>
+
+                        {!usr.isSuperAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUserRole(usr)}
+                            className={`flex min-h-12 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black px-3.5 text-xs font-black uppercase ${
+                              usr.role === 'admin'
+                                ? 'bg-red-100 text-red-900 hover:bg-red-200'
+                                : 'bg-emerald-300 text-black hover:bg-emerald-200'
+                            }`}
+                          >
+                            {usr.role === 'admin' ? (
+                              <>
+                                <ShieldOff className="h-4 w-4" aria-hidden="true" />
+                                Remove Admin
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                Make Admin (SSO)
+                              </>
+                            )}
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="grid gap-2 rounded-xl border border-zinc-200 bg-amber-50 p-3 text-xs font-bold sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500">
+                            Orders &amp; Spend
+                          </span>
+                          <span>
+                            {usr.orderCount} order(s) • ${usr.lifetimeSpend.toFixed(2)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500">
+                            Flat Rate Panic
+                          </span>
+                          <span>
+                            {usr.shiftCount} shift(s) • Best {usr.bestEfficiency.toFixed(1)}% •{' '}
+                            {usr.rewardCount} promo(s)
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500">
+                            Contact &amp; Size
+                          </span>
+                          <span>
+                            {usr.phone || 'No phone'} • Size {usr.shirt_size || '—'}
+                            {usr.marketing_opt_in ? ' • Drops Opt-In' : ''}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-zinc-500">
+                            Shipping City / ZIP
+                          </span>
+                          <span>
+                            {usr.default_shipping_address?.city
+                              ? `${usr.default_shipping_address.city}, ${usr.default_shipping_address.state ?? ''} ${usr.default_shipping_address.postal_code ?? ''}`
+                              : 'Not saved yet'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {bikes.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+                          {bikes.map((bk) => (
+                            <span
+                              key={bk.id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-black bg-zinc-100 px-2 py-1"
+                            >
+                              <Bike className="h-3.5 w-3.5 text-red-700" aria-hidden="true" />
+                              {[bk.year, bk.make, bk.model].filter(Boolean).join(' ')}
+                              {bk.vin ? ` (${bk.vin})` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          aria-label={`Internal admin note for ${usr.email}`}
+                          placeholder="Internal customer note (bike preferences, promo notes, VIP status...)"
+                          value={noteDrafts[usr.id] ?? ''}
+                          onChange={(e) =>
+                            setNoteDrafts((prev) => ({
+                              ...prev,
+                              [usr.id]: e.target.value,
+                            }))
+                          }
+                          className="min-h-12 min-w-[220px] flex-1 rounded-xl border-2 border-black bg-white px-3 text-base font-bold"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveUserNote(usr.id)}
+                          className="min-h-12 cursor-pointer rounded-xl border-2 border-black bg-amber-300 px-4 text-xs font-black uppercase hover:bg-amber-200"
+                        >
+                          Save Note
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+
+          {/* TAB 2: PRODUCTS CRUD + UPLOAD */}
           {activeTab === 'products' ? (
             <div className="space-y-5">
               <form

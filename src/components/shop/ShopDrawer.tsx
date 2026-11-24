@@ -296,9 +296,13 @@ export function ShopDrawer() {
     setCheckoutBusy(true);
     setCheckoutError(null);
     try {
+      const token = useShopStore.getState().authAccessToken;
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           items: cart.map((item) => ({
             handle: item.handle,

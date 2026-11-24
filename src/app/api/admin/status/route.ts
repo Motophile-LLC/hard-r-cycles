@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
       ...status,
       authenticated: false,
       authorizedAdmin: false,
+      isSuperAdmin: false,
     });
   }
 
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
       ...status,
       authenticated: auth.status !== 401,
       authorizedAdmin: false,
+      isSuperAdmin: false,
       authError: auth.error,
     });
   }
@@ -27,6 +29,7 @@ export async function GET(req: NextRequest) {
     ...status,
     authenticated: true,
     authorizedAdmin: true,
+    isSuperAdmin: auth.isSuperAdmin,
     adminEmail: auth.email,
   });
 }

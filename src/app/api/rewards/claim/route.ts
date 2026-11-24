@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser } from '@/lib/adminAuth';
 import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 import { computeRewardTier, getStripeClient } from '@/lib/stripeServer';
 
@@ -46,10 +47,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const authRes = await getAuthenticatedUser(req);
+
   // Always verify repair order numbers from Postgres — never trust client scores
   const { data: ro, error: roError } = await adminDb
     .from('repair_orders')
-    .select('id, mechanic_name, efficiency_rating, jobs_completed')
+    .select('id, user_id, mechanic_name, efficiency_rating, jobs_completed')
     .eq('id', repairOrderId)
     .maybeSingle();
 
@@ -133,6 +136,7 @@ export async function POST(req: NextRequest) {
     .from('reward_claims')
     .insert({
       repair_order_id: ro.id,
+      user_id: authRes.user?.userId ?? ro.user_id ?? null,
       mechanic_name: ro.mechanic_name,
       efficiency_rating: efficiency,
       discount_percent: tier.discountPercent,

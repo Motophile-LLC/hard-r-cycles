@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, PackageCheck, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AdminDashboardClient } from '@/components/admin/AdminDashboardClient';
@@ -46,7 +46,7 @@ async function loadAdminProducts(): Promise<{
 }
 
 export default async function AdminCatalogPage() {
-  const { source, products } = await loadAdminProducts();
+  const { products } = await loadAdminProducts();
   const activeCount = products.filter((p) => p.active).length;
 
   return (
@@ -82,31 +82,8 @@ export default async function AdminCatalogPage() {
           </Link>
         </div>
 
-        {/* Interactive Auth-Gated Admin Console + Readiness Checklist */}
+        {/* Interactive Auth-Gated Admin Console */}
         <AdminDashboardClient />
-
-        {/* Public Read-Only Status Summary */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border-3 border-black bg-emerald-100 p-4 shadow-[4px_4px_0px_#000]">
-            <div className="flex items-center gap-2 text-xs font-black uppercase text-emerald-900">
-              <PackageCheck className="h-4 w-4" aria-hidden="true" />
-              Data Source: {source === 'supabase' ? 'Live Supabase Postgres' : 'Local Fallback'}
-            </div>
-            <p className="mt-1 text-xs font-bold text-zinc-800">
-              Racks 1, 2, and the Feature Wall currently bridge to your verified Ninja POD Shopify products (`shopify_link`), while `stripe_diy` and `stripe_pod` Hard R Originals check out directly via Stripe Cart.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border-3 border-black bg-sky-100 p-4 shadow-[4px_4px_0px_#000]">
-            <div className="flex items-center gap-2 text-xs font-black uppercase text-sky-900">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Row-Level Security Enforced
-            </div>
-            <p className="mt-1 text-xs font-bold text-zinc-800">
-              Below is the public catalog snapshot. All product writes, image uploads, order packing queues, and reward issuances require an authenticated `ADMIN_EMAILS` session and server `SUPABASE_SECRET_KEY`.
-            </p>
-          </div>
-        </div>
 
         {/* Inventory Table */}
         <div className="overflow-x-auto rounded-3xl border-4 border-black bg-white shadow-[8px_8px_0px_#000]">

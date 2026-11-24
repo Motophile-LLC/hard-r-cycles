@@ -109,9 +109,13 @@ export function RepairOrderModal() {
       setClaimedReward(null);
       setCopiedCode(false);
       try {
+        const token = useShopStore.getState().authAccessToken;
         const postRes = await fetch('/api/repair-orders', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(payload),
         });
         const postJson = (await postRes.json()) as {
@@ -173,9 +177,13 @@ export function RepairOrderModal() {
     setClaimingReward(true);
     setClaimError(null);
     try {
+      const token = useShopStore.getState().authAccessToken;
       const res = await fetch('/api/rewards/claim', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ repairOrderId: savedOrderId }),
       });
       const json = (await res.json()) as {

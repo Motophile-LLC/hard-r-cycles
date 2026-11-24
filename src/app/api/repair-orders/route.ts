@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { FALLBACK_LEADERBOARD } from '@/data/shiftJobs';
+import { getAuthenticatedUser } from '@/lib/adminAuth';
+import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import type { RepairOrderRecord } from '@/types/game';
 
@@ -123,7 +125,15 @@ export async function POST(request: Request) {
     jobs_completed: jobsCompleted,
   };
 
-  const supabase = getSupabaseClient();
+  const authRes = await getAuthenticatedUser(request);
+  const authenticatedUserId = authRes.user?.userId ?? null;
+
+  const insertRow = {
+    ...payload,
+    ...(authenticatedUserId ? { user_id: authenticatedUserId } : {}),
+  };
+
+  const supabase = (authenticatedUserId ? getSupabaseAdminClient() : null) ?? getSupabaseClient();
   if (!supabase) {
     return NextResponse.json(
       {
@@ -141,7 +151,7 @@ export async function POST(request: Request) {
   try {
     const { data, error } = await supabase
       .from('repair_orders')
-      .insert(payload)
+      .insert(insertRow)
       .select(
         'id, mechanic_name, billed_hours, actual_hours, efficiency_rating, shop_damage_cost, rank_badge, jobs_completed, created_at',
       )

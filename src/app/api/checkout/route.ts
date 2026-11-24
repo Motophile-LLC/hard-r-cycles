@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FALLBACK_CATALOG } from '@/data/fallbackCatalog';
+import { getAuthenticatedUser } from '@/lib/adminAuth';
 import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import {
@@ -215,9 +216,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const authResult = await getAuthenticatedUser(req);
+  const authenticatedUserId = authResult.user?.userId ?? '';
+  const authenticatedEmail = authResult.user?.email || undefined;
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      ...(authenticatedEmail ? { customer_email: authenticatedEmail } : {}),
       shipping_address_collection: {
         allowed_countries: ['US', 'CA'],
       },
@@ -272,6 +278,7 @@ export async function POST(req: NextRequest) {
         fulfillment_mode: fulfillmentMode,
         reward_claim_id: matchedRewardClaimId,
         promo_code: rawPromoCode,
+        user_id: authenticatedUserId,
       },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancelled`,

@@ -17,13 +17,15 @@ const getServerTutorialSnapshot = () => true;
 export function ClockInModal() {
   const viewMode = useShopStore((s) => s.viewMode);
   const activeBayIndex = useShopStore((s) => s.activeBayIndex);
+  const userProfile = useShopStore((s) => s.userProfile);
   const phase = useGameStore((s) => s.phase);
   const defaultTutorial = useSyncExternalStore(
     noopSubscribe,
     getDefaultTutorialSnapshot,
     getServerTutorialSnapshot,
   );
-  const [name, setName] = useState('Wrencher');
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const name = nameDraft ?? (userProfile?.mechanic_handle || 'Wrencher');
   const [tutorialOverride, setTutorialOverride] = useState<boolean | null>(null);
   const [sfxVol, setSfxVol] = useState(0.75);
   const [musicVol, setMusicVol] = useState(0.35);
@@ -125,7 +127,7 @@ export function ClockInModal() {
               maxLength={24}
               required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setNameDraft(e.target.value)}
               placeholder="e.g. Big Dale"
               className="mt-1 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-base font-black text-black shadow-[3px_3px_0px_#000] focus:outline-none focus:ring-2 focus:ring-amber-400"
             />

@@ -10,6 +10,8 @@ import {
   Settings,
   ShoppingBag,
   ShoppingCart,
+  UserCheck,
+  UserCircle2,
   Volume2,
   VolumeX,
   Wrench,
@@ -21,8 +23,9 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { pickNextAmbientCustomer } from '@/data/ambientCustomers';
 import { FALLBACK_CATALOG } from '@/data/fallbackCatalog';
+import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import { useShopStore } from '@/store/useShopStore';
-import type { ShopProduct } from '@/types/shop';
+import type { ShopProduct, UserProfile } from '@/types/shop';
 
 export function ShopFloorHUD() {
   const hasHydrated = useShopStore((s) => s.hasHydrated);
@@ -35,9 +38,80 @@ export function ShopFloorHUD() {
   const cameraZoomDelta = useShopStore((s) => s.cameraZoomDelta);
   const cart = useShopStore((s) => s.cart);
   const sfxEnabled = useShopStore((s) => s.sfxEnabled);
+  const authAccessToken = useShopStore((s) => s.authAccessToken);
+  const userProfile = useShopStore((s) => s.userProfile);
+  const isAdminUser = useShopStore((s) => s.isAdminUser);
 
   const floorTickRef = useRef(0);
   const lastCustomerIdRef = useRef<string | undefined>(undefined);
+
+  // Sync Supabase Google/Apple SSO session + rider profile + unlocked promo rewards
+  useEffect(() => {
+    const authClient = getSupabaseBrowserAuthClient();
+    if (!authClient) return;
+    let active = true;
+
+    const syncSession = async (token: string) => {
+      if (!token) {
+        if (active) useShopStore.getState().setAuthState('', null, false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!active) return;
+        if (res.ok) {
+          const json = (await res.json()) as {
+            profile?: UserProfile;
+            isAdmin?: boolean;
+            rewards?: Array<{
+              id: string;
+              repair_order_id: string;
+              promo_code: string;
+              discount_percent: number;
+              redeemed: boolean;
+              created_at: string;
+            }>;
+          };
+          const store = useShopStore.getState();
+          store.setAuthState(token, json.profile ?? null, Boolean(json.isAdmin));
+          for (const rw of json.rewards ?? []) {
+            if (!rw.redeemed) {
+              store.addUnlockedReward({
+                id: rw.id,
+                repairOrderId: rw.repair_order_id,
+                promoCode: rw.promo_code,
+                discountPercent: rw.discount_percent,
+                tierLabel: `${rw.discount_percent}% OFF Shift Reward`,
+                redeemed: false,
+                createdAt: rw.created_at,
+              });
+            }
+          }
+        } else {
+          useShopStore.getState().setAuthState(token, null, false);
+        }
+      } catch {
+        if (active) {
+          useShopStore.getState().setAuthState(token, null, false);
+        }
+      }
+    };
+
+    void authClient.auth.getSession().then(({ data }) => {
+      void syncSession(data.session?.access_token ?? '');
+    });
+
+    const { data: sub } = authClient.auth.onAuthStateChange((_event, session) => {
+      void syncSession(session?.access_token ?? '');
+    });
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   // Load live Supabase catalog (with automatic fallback)
   useEffect(() => {
@@ -201,13 +275,43 @@ export function ShopFloorHUD() {
             )}
           </button>
 
+          <button
+            type="button"
+            onClick={() => useShopStore.getState().setAccountModalOpen(true)}
+            aria-label={authAccessToken ? 'Open Rider Account & Garage' : 'Sign in with Google or Apple'}
+            className={`flex cursor-pointer items-center gap-1.5 rounded-xl border-3 border-black px-2.5 py-1.5 text-[11px] font-black uppercase text-black shadow-[3px_3px_0px_#000] ${
+              authAccessToken
+                ? 'bg-emerald-300 hover:bg-emerald-200'
+                : 'bg-white hover:bg-amber-100'
+            }`}
+          >
+            {authAccessToken ? (
+              <>
+                <UserCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="max-w-[96px] truncate">
+                  {userProfile?.mechanic_handle || userProfile?.display_name || 'Garage'}
+                </span>
+              </>
+            ) : (
+              <>
+                <UserCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Sign In</span>
+              </>
+            )}
+          </button>
+
           <Link
             href="/admin"
-            title="Catalog & Fulfillment Admin"
+            title={isAdminUser ? 'Open Admin Console' : 'Admin Console'}
             aria-label="Open Catalog & Fulfillment Admin"
-            className="flex items-center justify-center rounded-xl border-3 border-black bg-white p-2 text-black shadow-[3px_3px_0px_#000] hover:bg-zinc-200"
+            className={`flex items-center justify-center gap-1 rounded-xl border-3 border-black p-2 text-black shadow-[3px_3px_0px_#000] ${
+              isAdminUser
+                ? 'bg-emerald-300 px-2.5 text-[11px] font-black uppercase hover:bg-emerald-200'
+                : 'bg-white hover:bg-zinc-200'
+            }`}
           >
             <Settings className="h-4 w-4" aria-hidden="true" />
+            {isAdminUser ? <span className="hidden md:inline">Admin</span> : null}
           </Link>
         </div>
       </header>

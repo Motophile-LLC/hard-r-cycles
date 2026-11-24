@@ -105,10 +105,13 @@ export async function POST(req: NextRequest) {
     const shippingCost = Number(((fullSession.shipping_cost?.amount_total ?? 0) / 100).toFixed(2));
     const total = Number(((fullSession.amount_total ?? 0) / 100).toFixed(2));
 
+    const userIdMeta = fullSession.metadata?.user_id?.trim() || null;
+
     const { data: insertedOrder, error: insertError } = await adminDb
       .from('orders')
       .insert({
         stripe_session_id: fullSession.id,
+        user_id: userIdMeta,
         customer_email: customerEmail,
         shipping_name: shippingDetails?.name ?? fullSession.customer_details?.name ?? null,
         shipping_address: shippingDetails?.address ?? null,
@@ -130,6 +133,33 @@ export async function POST(req: NextRequest) {
       }
       console.error('[webhook/stripe] DB insert error:', insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    // Backfill default shipping address onto the user's profile if empty
+    if (userIdMeta && shippingDetails?.address?.line1) {
+      const { data: prof } = await adminDb
+        .from('profiles')
+        .select('id, default_shipping_address')
+        .eq('id', userIdMeta)
+        .maybeSingle();
+
+      if (prof && !prof.default_shipping_address) {
+        await adminDb
+          .from('profiles')
+          .update({
+            default_shipping_address: {
+              name: shippingDetails.name ?? fullSession.customer_details?.name ?? '',
+              line1: shippingDetails.address.line1 ?? '',
+              line2: shippingDetails.address.line2 ?? '',
+              city: shippingDetails.address.city ?? '',
+              state: shippingDetails.address.state ?? '',
+              postal_code: shippingDetails.address.postal_code ?? '',
+              country: shippingDetails.address.country ?? 'US',
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userIdMeta);
+      }
     }
 
     const dispatchResult = await dispatchFulfillment({

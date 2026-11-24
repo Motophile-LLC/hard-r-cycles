@@ -14,12 +14,25 @@ export interface AdminSetupStatus {
   stripeCheckoutReady: boolean;
 }
 
+export interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+  provider: string;
+}
+
 export function getAdminAllowlist(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? '';
   return raw
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
+}
+
+export function isSuperAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return getAdminAllowlist().includes(email.trim().toLowerCase());
 }
 
 export function getAdminSetupStatus(): AdminSetupStatus {
@@ -48,31 +61,25 @@ export function getAdminSetupStatus(): AdminSetupStatus {
   };
 }
 
-export type AdminAuthResult =
-  | { ok: true; email: string; userId: string }
-  | { ok: false; status: 401 | 403 | 503; error: string };
-
-export async function requireAdminAuth(
-  req: NextRequest,
-  opts: { requireSecretClient?: boolean } = {},
-): Promise<AdminAuthResult> {
+export function extractBearerToken(req: Request | NextRequest): string {
   const authHeader = req.headers.get('authorization') ?? '';
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
-  const token = match?.[1]?.trim();
+  return match?.[1]?.trim() ?? '';
+}
 
+export async function getAuthenticatedUser(
+  req: Request | NextRequest,
+): Promise<{ user: AuthenticatedUser | null; tokenPresent: boolean; error?: string }> {
+  const token = extractBearerToken(req);
   if (!token) {
-    return {
-      ok: false,
-      status: 401,
-      error: 'Missing Bearer authentication token. Sign in as an admin first.',
-    };
+    return { user: null, tokenPresent: false };
   }
 
   const verifier = getSupabaseAdminClient() ?? getSupabaseClient();
   if (!verifier) {
     return {
-      ok: false,
-      status: 503,
+      user: null,
+      tokenPresent: true,
       error: 'Supabase authentication client is not configured.',
     };
   }
@@ -80,43 +87,120 @@ export async function requireAdminAuth(
   const { data, error } = await verifier.auth.getUser(token);
   if (error || !data.user) {
     return {
-      ok: false,
-      status: 401,
-      error: 'Invalid or expired admin session. Please sign in again.',
+      user: null,
+      tokenPresent: true,
+      error: 'Invalid or expired session. Please sign in again.',
     };
   }
 
-  const allowlist = getAdminAllowlist();
-  if (allowlist.length === 0) {
+  const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+  const appMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>;
+  const fullName =
+    typeof meta.full_name === 'string'
+      ? meta.full_name
+      : typeof meta.name === 'string'
+        ? meta.name
+        : '';
+  const avatarUrl =
+    typeof meta.avatar_url === 'string'
+      ? meta.avatar_url
+      : typeof meta.picture === 'string'
+        ? meta.picture
+        : null;
+
+  return {
+    tokenPresent: true,
+    user: {
+      userId: data.user.id,
+      email: (data.user.email ?? '').trim().toLowerCase(),
+      fullName: fullName.trim(),
+      avatarUrl,
+      provider: typeof appMeta.provider === 'string' ? appMeta.provider : 'email',
+    },
+  };
+}
+
+export type AdminAuthResult =
+  | { ok: true; email: string; userId: string; isSuperAdmin: boolean }
+  | { ok: false; status: 401 | 403 | 503; error: string };
+
+export async function requireAdminAuth(
+  req: NextRequest,
+  opts: { requireSecretClient?: boolean } = {},
+): Promise<AdminAuthResult> {
+  const { user, tokenPresent, error } = await getAuthenticatedUser(req);
+
+  if (!tokenPresent) {
+    return {
+      ok: false,
+      status: 401,
+      error: 'Sign in with Google or Apple to continue.',
+    };
+  }
+
+  if (!user) {
+    return {
+      ok: false,
+      status: error?.includes('not configured') ? 503 : 401,
+      error: error ?? 'Invalid or expired session. Please sign in again.',
+    };
+  }
+
+  const adminDb = getSupabaseAdminClient();
+  if (opts.requireSecretClient && !adminDb) {
     return {
       ok: false,
       status: 503,
       error:
-        'ADMIN_EMAILS is not configured on the server. Add your admin email(s) to .env.local.',
+        'SUPABASE_SECRET_KEY is not configured on the server. Add your sb_secret key to .env.local.',
     };
   }
 
-  const verifiedEmail = (data.user.email ?? '').trim().toLowerCase();
-  if (!verifiedEmail || !allowlist.includes(verifiedEmail)) {
+  const isSuperAdmin = isSuperAdminEmail(user.email);
+  let hasProfileAdmin = false;
+
+  if (adminDb) {
+    const { data: profile } = await adminDb
+      .from('profiles')
+      .select('id, role')
+      .eq('id', user.userId)
+      .maybeSingle();
+
+    hasProfileAdmin = profile?.role === 'admin';
+
+    // Ensure Super Admins from ADMIN_EMAILS always appear as role = 'admin' in profiles
+    if (isSuperAdmin && (!profile || profile.role !== 'admin')) {
+      const fallbackHandle =
+        (user.fullName.split(/\s+/)[0] || user.email.split('@')[0] || 'Admin').slice(0, 24);
+      await adminDb.from('profiles').upsert(
+        {
+          id: user.userId,
+          email: user.email,
+          full_name: user.fullName,
+          display_name: user.fullName || user.email.split('@')[0] || 'Admin',
+          mechanic_handle: fallbackHandle,
+          avatar_url: user.avatarUrl,
+          auth_provider: user.provider,
+          role: 'admin',
+        },
+        { onConflict: 'id' },
+      );
+    }
+  }
+
+  if (!isSuperAdmin && !hasProfileAdmin) {
     return {
       ok: false,
       status: 403,
-      error: 'Authenticated account is not on the ADMIN_EMAILS allowlist.',
-    };
-  }
-
-  if (opts.requireSecretClient && !getSupabaseAdminClient()) {
-    return {
-      ok: false,
-      status: 503,
       error:
-        'SUPABASE_SECRET_KEY is not configured on the server. Add your sb_secret key to .env.local for admin mutations.',
+        'Signed in, but this account does not have Admin access yet. Ask an existing Admin to promote your account in /admin → Users & Admins.',
     };
   }
 
   return {
     ok: true,
-    email: verifiedEmail,
-    userId: data.user.id,
+    email: user.email,
+    userId: user.userId,
+    isSuperAdmin,
   };
 }

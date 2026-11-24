@@ -14,6 +14,7 @@ import type {
   StaffDialogueState,
   StaffId,
   UnlockedReward,
+  UserProfile,
 } from '@/types/shop';
 import { shopAudio } from '@/utils/audio';
 
@@ -75,7 +76,14 @@ export interface ShopStore {
   unlockedRewards: UnlockedReward[];
   sfxEnabled: boolean;
 
+  accountModalOpen: boolean;
+  authAccessToken: string;
+  userProfile: UserProfile | null;
+  isAdminUser: boolean;
+
   setHasHydrated: (hydrated: boolean) => void;
+  setAccountModalOpen: (open: boolean) => void;
+  setAuthState: (token: string, profile: UserProfile | null, isAdmin: boolean) => void;
   setAgeVerified: (verified: boolean) => void;
   setCameraFocus: (zone: CameraFocusZone) => void;
   nudgeCameraYaw: (delta: number) => void;
@@ -130,7 +138,21 @@ export const useShopStore = create<ShopStore>()(
       unlockedRewards: [],
       sfxEnabled: true,
 
+      accountModalOpen: false,
+      authAccessToken: '',
+      userProfile: null,
+      isAdminUser: false,
+
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
+
+      setAccountModalOpen: (open) => set({ accountModalOpen: open, idleSeconds: 0 }),
+
+      setAuthState: (token, profile, isAdmin) =>
+        set({
+          authAccessToken: token,
+          userProfile: profile,
+          isAdminUser: isAdmin,
+        }),
 
       setAgeVerified: (verified) => {
         if (verified && typeof window !== 'undefined') {

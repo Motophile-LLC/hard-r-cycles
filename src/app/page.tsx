@@ -1,6 +1,7 @@
 import { UnifiedShopCanvasWrapper } from '@/components/canvas/UnifiedShopCanvasWrapper';
 import { TorqueMiniGame } from '@/components/minigames/TorqueMiniGame';
 import { WiringMiniGame } from '@/components/minigames/WiringMiniGame';
+import { AccountModal } from '@/components/shop/AccountModal';
 import { FrontDoorGateModal } from '@/components/shop/FrontDoorGateModal';
 import { ServiceCounterModal } from '@/components/shop/ServiceCounterModal';
 import { ShopDrawer } from '@/components/shop/ShopDrawer';
@@ -22,6 +23,7 @@ export default function HomePage() {
       <StaffDialogueBox />
       <ShopDrawer />
       <ServiceCounterModal />
+      <AccountModal />
       <FrontDoorGateModal />
 
       {/* Flat Rate Panic Service Bay Overlays */}
