@@ -3,18 +3,14 @@
 import {
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   Compass,
   LayoutGrid,
   RotateCcw,
   Settings,
-  ShoppingBag,
-  ShoppingCart,
   UserCheck,
   UserCircle2,
   Volume2,
   VolumeX,
-  Wrench,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -254,7 +250,14 @@ export function ShopFloorHUD() {
             aria-label={`Open shopping cart with ${cartCount} items`}
             className="flex cursor-pointer items-center gap-1.5 rounded-xl border-3 border-black bg-amber-400 px-2.5 py-1.5 text-[11px] font-black uppercase text-black shadow-[3px_3px_0px_#000] hover:bg-amber-300"
           >
-            <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
+            <Image
+              src="/sprites/ui/icon-cart.png"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 object-contain"
+            />
             <span>Cart</span>
             <span className="rounded-md bg-black px-1.5 py-0.5 text-[10px] text-amber-300">
               {cartCount}
@@ -396,7 +399,14 @@ export function ShopFloorHUD() {
             onClick={() => useShopStore.getState().setOpenDrawer('APPAREL', 'ALL')}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
-            <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden="true" />
+            <Image
+              src="/sprites/ui/icon-apparel.png"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 object-contain"
+            />
             <span>Apparel ({activeCount})</span>
           </button>
 
@@ -405,7 +415,14 @@ export function ShopFloorHUD() {
             onClick={() => useShopStore.getState().setOpenDrawer('PARTS')}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
-            <Wrench className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />
+            <Image
+              src="/sprites/ui/icon-parts.png"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 object-contain"
+            />
             <span>Parts</span>
           </button>
 
@@ -414,7 +431,14 @@ export function ShopFloorHUD() {
             onClick={() => useShopStore.getState().setOpenDrawer('SERVICE_COUNTER')}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
-            <ClipboardList className="h-3.5 w-3.5 shrink-0 text-orange-300" aria-hidden="true" />
+            <Image
+              src="/sprites/ui/icon-service.png"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 object-contain"
+            />
             <span>Service</span>
           </button>
 
@@ -423,7 +447,14 @@ export function ShopFloorHUD() {
             onClick={() => useShopStore.getState().enterGameBay(3)}
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-emerald-400 px-2.5 py-2 text-[11px] font-black uppercase text-black hover:bg-emerald-300"
           >
-            <Wrench className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <Image
+              src="/sprites/ui/icon-bays.png"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 object-contain"
+            />
             <span>Play Bays</span>
           </button>
 

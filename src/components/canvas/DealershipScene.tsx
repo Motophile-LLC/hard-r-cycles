@@ -12,6 +12,7 @@ import type {
   LiveBayOccupant,
   StaffId,
 } from '@/types/shop';
+import type { CharacterId } from '@/utils/proceduralSprites';
 import { useCoarsePointer } from '@/utils/useCoarsePointer';
 import { SafeHtml as Html } from './SafeHtml';
 import {
@@ -25,7 +26,13 @@ import {
   getToolChestFrontTexture,
   getWeatheredCounterTexture,
 } from '@/utils/dealershipTextures';
-import { TOON_GRADIENT_MAP, useBikeSpriteTexture, useCharacterSpriteTexture, useShopBackgroundTexture } from './ToonMaterial';
+import {
+  TOON_GRADIENT_MAP,
+  useBikeSpriteTexture,
+  useCharacterSpriteTexture,
+  useShopBackgroundTexture,
+  useVfxSpriteTexture,
+} from './ToonMaterial';
 
 const CAMERA_PRESETS: Record<
   CameraFocusZone,
@@ -206,15 +213,50 @@ function StaffCharacterStandee({
   label,
 }: {
   staffId: StaffId;
-  character: 'v' | 'mechanic' | 'service-writer';
+  character: CharacterId;
   pose: string;
   position: [number, number, number];
   height: number;
   label: string;
 }) {
-  const { texture, aspect } = useCharacterSpriteTexture(character, pose);
   const bark = useShopStore((s) => s.overheadBarks[staffId]);
+  const activeDialogue = useShopStore((s) => s.activeDialogue);
+  const openDrawer = useShopStore((s) => s.openDrawer);
   const [hovered, setHovered] = useState(false);
+
+  const reactivePose = (() => {
+    const talkingToThisStaff = activeDialogue?.staffId === staffId;
+    if (staffId === 'dick') {
+      if (
+        bark ||
+        (talkingToThisStaff &&
+          (activeDialogue.moodLabel === 'WTF?!' || activeDialogue.moodLabel === 'READ THE SIGN!'))
+      ) {
+        return 'get-out';
+      }
+      if (hovered || openDrawer === 'SERVICE_COUNTER' || talkingToThisStaff) {
+        return 'clipboard';
+      }
+      return 'leaning';
+    }
+    if (staffId === 'scooter') {
+      if (bark || (talkingToThisStaff && activeDialogue.moodLabel === 'OOPS...')) {
+        return 'dropped-it';
+      }
+      if (hovered || openDrawer === 'PARTS' || talkingToThisStaff) {
+        return 'parts-pitch';
+      }
+      return 'sweeping';
+    }
+    if (staffId === 'v') {
+      if (hovered || talkingToThisStaff) return 'action';
+      if (openDrawer === 'APPAREL') return 'three-quarter';
+      return 'front';
+    }
+    return pose;
+  })();
+
+  const { texture, aspect } = useCharacterSpriteTexture(character, reactivePose);
   const groupRef = useRef<THREE.Group>(null);
   const spriteWidth = height * aspect;
 
@@ -399,22 +441,24 @@ function LiveServiceBay3D({
   bay: LiveBayOccupant;
   position: [number, number, number];
 }) {
-  const bikeAsset = useBikeSpriteTexture(bay.bikeSprite);
-  const techPose =
-    bay.activity === 'JOB_DONE'
-      ? 'celebrate'
-      : bay.activity === 'BREAKER_BLOWN'
-        ? 'electrocuted'
-        : bay.activity === 'CHAOS_SMOKE'
-          ? 'panicked'
-          : bay.activity === 'IDLE'
-            ? 'idle'
-            : 'wrenching';
+  const isoBikeAsset = useBikeSpriteTexture(`${bay.bikeSprite}-iso`);
+  const fallbackBikeAsset = useBikeSpriteTexture(bay.bikeSprite);
+  const bikeAsset = isoBikeAsset ?? fallbackBikeAsset;
 
-  const { texture: techTex, aspect: techAspect } = useCharacterSpriteTexture('mechanic', techPose);
+  const techChar: CharacterId =
+    bay.bayIndex === 1 ? 'bay-tech-a' : bay.bayIndex === 2 ? 'bay-tech-b' : 'bay-tech-c';
+  const techPose =
+    bay.activity === 'WRENCHING' || bay.activity === 'SPARKS' ? 'at-lift' : 'wrenching';
+
+  const { texture: techTex, aspect: techAspect } = useCharacterSpriteTexture(techChar, techPose);
+  const sparksVfx = useVfxSpriteTexture('sparks');
+  const smokeVfx = useVfxSpriteTexture('smoke');
+  const zapVfx = useVfxSpriteTexture('zap');
+
   const [hovered, setHovered] = useState(false);
   const sparksRef = useRef<THREE.Group>(null);
   const smokeRef = useRef<THREE.Group>(null);
+  const zapRef = useRef<THREE.Group>(null);
   const techGroupRef = useRef<THREE.Group>(null);
   const liftDeckRef = useRef<THREE.Group>(null);
 
@@ -434,22 +478,26 @@ function LiveServiceBay3D({
       techGroupRef.current.scale.set(1 - bob * 0.4, 1 + bob, 1);
     }
     if (sparksRef.current && bay.activity === 'SPARKS') {
-      sparksRef.current.rotation.z = t * 8;
-      const pulse = 0.8 + Math.sin(t * 24) * 0.3;
+      sparksRef.current.rotation.z = Math.sin(t * 16 + bay.bayIndex) * 0.14;
+      const pulse = 0.85 + Math.sin(t * 24) * 0.28;
       sparksRef.current.scale.setScalar(pulse);
     }
     if (smokeRef.current && bay.activity === 'CHAOS_SMOKE') {
-      smokeRef.current.position.y = 2.0 + ((t * 0.8) % 0.8);
-      const s = 0.85 + ((t * 0.8) % 0.8) * 0.5;
+      smokeRef.current.position.y = 1.95 + ((t * 0.75) % 0.75);
+      const s = 0.85 + ((t * 0.75) % 0.75) * 0.55;
       smokeRef.current.scale.setScalar(s);
+    }
+    if (zapRef.current && bay.activity === 'BREAKER_BLOWN') {
+      const flash = 0.85 + Math.abs(Math.sin(t * 22)) * 0.35;
+      zapRef.current.scale.setScalar(flash);
+      zapRef.current.visible = Math.sin(t * 32) > -0.6;
     }
   });
 
-  const bikeH = 1.48;
+  const bikeH = 1.62;
   const bikeW = bikeAsset ? bikeH * bikeAsset.aspect : 2.35;
   const techH = 1.72;
   const techW = techH * techAspect;
-  const techTint = bay.bayIndex === 2 ? '#e2e8f0' : bay.bayIndex === 3 ? '#fed7aa' : '#ffffff';
 
   return (
     <group
@@ -531,7 +579,7 @@ function LiveServiceBay3D({
 
         {bikeAsset ? (
           <Billboard follow={false} position={[0, 0.5 + bikeH / 2, 0]}>
-            <mesh rotation={[0, -0.25, 0]}>
+            <mesh rotation={[0, -0.08, 0]}>
               <planeGeometry args={[bikeW, bikeH]} />
               <meshBasicMaterial
                 map={bikeAsset.texture}
@@ -544,7 +592,7 @@ function LiveServiceBay3D({
         ) : null}
       </group>
 
-      {/* Animated Bay Tech beside lift */}
+      {/* Animated Unique Bay Tech beside lift (Sheet 05) */}
       {bay.activity !== 'IDLE' ? (
         <group position={[0.45, 0, 0.86]}>
           <Billboard follow>
@@ -555,7 +603,7 @@ function LiveServiceBay3D({
                   map={techTex}
                   alphaTest={0.5}
                   depthWrite={true}
-                  color={techTint}
+                  color="#ffffff"
                   side={THREE.DoubleSide}
                 />
               </mesh>
@@ -564,30 +612,75 @@ function LiveServiceBay3D({
         </group>
       ) : null}
 
-      {/* Sparks VFX */}
+      {/* Hand-Inked Bay VFX Billboards (Sheet 07) */}
       {bay.activity === 'SPARKS' ? (
-        <group ref={sparksRef} position={[0.25, 1.25, 0.22]}>
-          {[0, 1, 2, 3].map((i) => (
-            <mesh key={i} rotation={[0, 0, (i * Math.PI) / 4]}>
-              <boxGeometry args={[0.46, 0.05, 0.05]} />
-              <meshBasicMaterial color="#facc15" />
-            </mesh>
-          ))}
-        </group>
+        <Billboard follow position={[0.22, 1.35, 0.25]}>
+          <group ref={sparksRef}>
+            {sparksVfx ? (
+              <mesh>
+                <planeGeometry args={[0.82 * sparksVfx.aspect, 0.82]} />
+                <meshBasicMaterial
+                  map={sparksVfx.texture}
+                  transparent
+                  alphaTest={0.3}
+                  depthWrite={false}
+                />
+              </mesh>
+            ) : (
+              [0, 1, 2, 3].map((i) => (
+                <mesh key={i} rotation={[0, 0, (i * Math.PI) / 4]}>
+                  <boxGeometry args={[0.46, 0.05, 0.05]} />
+                  <meshBasicMaterial color="#facc15" />
+                </mesh>
+              ))
+            )}
+          </group>
+        </Billboard>
       ) : null}
 
-      {/* Chaos Smoke VFX */}
       {bay.activity === 'CHAOS_SMOKE' ? (
-        <group ref={smokeRef} position={[-0.2, 2.0, 0.1]}>
-          <mesh position={[0, 0, 0]}>
-            <sphereGeometry args={[0.24, 10, 10]} />
-            <meshBasicMaterial color="#cbd5e1" transparent opacity={0.85} />
-          </mesh>
-          <mesh position={[0.22, 0.18, 0.05]}>
-            <sphereGeometry args={[0.19, 10, 10]} />
-            <meshBasicMaterial color="#94a3b8" transparent opacity={0.8} />
-          </mesh>
-        </group>
+        <Billboard follow position={[-0.2, 2.0, 0.12]}>
+          <group ref={smokeRef}>
+            {smokeVfx ? (
+              <mesh>
+                <planeGeometry args={[0.96 * smokeVfx.aspect, 0.96]} />
+                <meshBasicMaterial
+                  map={smokeVfx.texture}
+                  transparent
+                  alphaTest={0.25}
+                  depthWrite={false}
+                />
+              </mesh>
+            ) : (
+              <>
+                <mesh position={[0, 0, 0]}>
+                  <sphereGeometry args={[0.24, 10, 10]} />
+                  <meshBasicMaterial color="#cbd5e1" transparent opacity={0.85} />
+                </mesh>
+                <mesh position={[0.22, 0.18, 0.05]}>
+                  <sphereGeometry args={[0.19, 10, 10]} />
+                  <meshBasicMaterial color="#94a3b8" transparent opacity={0.8} />
+                </mesh>
+              </>
+            )}
+          </group>
+        </Billboard>
+      ) : null}
+
+      {bay.activity === 'BREAKER_BLOWN' && zapVfx ? (
+        <Billboard follow position={[0.45, 2.08, 0.52]}>
+          <group ref={zapRef}>
+            <mesh>
+              <planeGeometry args={[0.9 * zapVfx.aspect, 0.9]} />
+              <meshBasicMaterial
+                map={zapVfx.texture}
+                transparent
+                alphaTest={0.3}
+                depthWrite={false}
+              />
+            </mesh>
+          </group>
+        </Billboard>
       ) : null}
 
       {/* Floating Bay Status Badge */}
@@ -628,11 +721,52 @@ function LiveServiceBay3D({
   );
 }
 
+function WallSignPlaque({
+  texture,
+  position,
+  rotationY = 0,
+  width,
+  height,
+}: {
+  texture: THREE.Texture | null;
+  position: [number, number, number];
+  rotationY?: number;
+  width: number;
+  height: number;
+}) {
+  if (!texture) return null;
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[width + 0.04, height + 0.04, 0.06]} />
+        <meshToonMaterial color="#1c1917" gradientMap={TOON_GRADIENT_MAP} />
+        <Edges color="#111111" />
+      </mesh>
+      <mesh position={[0, 0, 0.036]}>
+        <planeGeometry args={[width, height]} />
+        <meshBasicMaterial
+          map={texture}
+          transparent
+          alphaTest={0.35}
+          polygonOffset
+          polygonOffsetFactor={-1}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 export function DealershipScene() {
   const isTouch = useCoarsePointer();
   const liveBays = useShopStore((s) => s.liveBays);
   const logoTex = useShopBackgroundTexture('/brand/hard-r-cycles-logo.png');
   const breakerTex = useShopBackgroundTexture('/sprites/props/breaker-box.png');
+
+  const signNoRefundsTex = useShopBackgroundTexture('/sprites/props/signs/sign-no-refunds.png');
+  const signCashOnlyTex = useShopBackgroundTexture('/sprites/props/signs/sign-cash-only.png');
+  const signLaborRateTex = useShopBackgroundTexture('/sprites/props/signs/sign-labor-rate.png');
+  const signSafety3rdTex = useShopBackgroundTexture('/sprites/props/signs/sign-safety-3rd.png');
+  const signOilLeaksTex = useShopBackgroundTexture('/sprites/props/signs/sign-oil-leaks.png');
 
   const shopFloorTex = useMemo(() => getShopFloorTexture(), []);
   const wallLeftTex = useMemo(() => getGarageWallTexture('left'), []);
@@ -643,23 +777,6 @@ export function DealershipScene() {
   const rollupDoorTex = useMemo(() => getRollupBayDoorTexture(), []);
   const toolChestTex = useMemo(() => getToolChestFrontTexture(), []);
 
-  const signNoRefunds = useMemo(
-    () => getComicSignPlaqueTexture('no-refunds', ['NO REFUNDS', 'SERIOUSLY.']),
-    [],
-  );
-  const signCashOnly = useMemo(
-    () => getComicSignPlaqueTexture('cash-only', ['CASH ONLY', 'OR STRIPE']),
-    [],
-  );
-  const signLaborRate = useMemo(
-    () =>
-      getComicSignPlaqueTexture(
-        'labor-rate',
-        ['LABOR RATE', '$100 / HR', '$200 WATCHING'],
-        '#b91c1c',
-      ),
-    [],
-  );
   const welcomeMatTex = useMemo(
     () =>
       getComicSignPlaqueTexture(
@@ -1047,11 +1164,11 @@ export function DealershipScene() {
         </group>
       </group>
 
-      {/* Scooter (Apprentice) */}
+      {/* Scooter (Apprentice — Reactive Sheet 04 Sprites) */}
       <StaffCharacterStandee
         staffId="scooter"
-        character="service-writer"
-        pose="calm"
+        character="scooter"
+        pose="sweeping"
         position={[-1.4, 0.12, 0.45]}
         height={1.92}
         label="Scooter"
@@ -1148,53 +1265,46 @@ export function DealershipScene() {
         ) : null}
       </group>
 
-      {/* Non-Overlapping Back Wall Tin Plaques on Solid 3D Backing Boards */}
-      {signNoRefunds ? (
-        <group position={[-2.15, 3.32, -4.49]}>
-          <mesh castShadow>
-            <boxGeometry args={[1.14, 0.58, 0.06]} />
-            <meshToonMaterial color="#1c1917" gradientMap={TOON_GRADIENT_MAP} />
-            <Edges color="#111111" />
-          </mesh>
-          <mesh position={[0, 0, 0.036]}>
-            <planeGeometry args={[1.1, 0.54]} />
-            <meshBasicMaterial map={signNoRefunds} polygonOffset polygonOffsetFactor={-1} />
-          </mesh>
-        </group>
-      ) : null}
-      {signCashOnly ? (
-        <group position={[0.35, 2.52, -4.49]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.9, 0.54, 0.06]} />
-            <meshToonMaterial color="#1c1917" gradientMap={TOON_GRADIENT_MAP} />
-            <Edges color="#111111" />
-          </mesh>
-          <mesh position={[0, 0, 0.036]}>
-            <planeGeometry args={[0.86, 0.5]} />
-            <meshBasicMaterial map={signCashOnly} polygonOffset polygonOffsetFactor={-1} />
-          </mesh>
-        </group>
-      ) : null}
-      {signLaborRate ? (
-        <group position={[1.45, 2.52, -4.49]}>
-          <mesh castShadow>
-            <boxGeometry args={[1.06, 0.6, 0.06]} />
-            <meshToonMaterial color="#1c1917" gradientMap={TOON_GRADIENT_MAP} />
-            <Edges color="#111111" />
-          </mesh>
-          <mesh position={[0, 0, 0.036]}>
-            <planeGeometry args={[1.02, 0.56]} />
-            <meshBasicMaterial map={signLaborRate} polygonOffset polygonOffsetFactor={-1} />
-          </mesh>
-        </group>
-      ) : null}
+      {/* Non-Overlapping Back & Left Wall Hand-Inked Signs (Sheet 06) */}
+      <WallSignPlaque
+        texture={signNoRefundsTex}
+        position={[-2.15, 3.32, -4.49]}
+        width={1.12}
+        height={0.7}
+      />
+      <WallSignPlaque
+        texture={signCashOnlyTex}
+        position={[0.26, 2.54, -4.49]}
+        width={0.84}
+        height={0.54}
+      />
+      <WallSignPlaque
+        texture={signLaborRateTex}
+        position={[1.34, 2.54, -4.49]}
+        width={1.24}
+        height={0.56}
+      />
+      <WallSignPlaque
+        texture={signSafety3rdTex}
+        position={[-6.5, 3.05, -0.45]}
+        rotationY={Math.PI / 2}
+        width={0.92}
+        height={0.8}
+      />
+      <WallSignPlaque
+        texture={signOilLeaksTex}
+        position={[-6.5, 3.05, 1.15]}
+        rotationY={Math.PI / 2}
+        width={1.04}
+        height={0.8}
+      />
 
-      {/* Dick behind Service Counter */}
+      {/* Dick behind Service Counter (Reactive Sheet 03 Sprites) */}
       <StaffCharacterStandee
         staffId="dick"
-        character="mechanic"
-        pose="idle"
-        position={[-0.45, 0.12, -3.55]}
+        character="dick"
+        pose="leaning"
+        position={[-0.45, 0.12, -3.45]}
         height={2.05}
         label="Dick"
       />

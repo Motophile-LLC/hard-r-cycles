@@ -12,12 +12,12 @@ const STAFF_META: Record<
   dick: {
     name: 'Dick',
     role: 'Owner & Master Mechanic',
-    defaultPortrait: '/sprites/portraits/dick-front.png',
+    defaultPortrait: '/sprites/portraits/dick-glaring.png',
   },
   scooter: {
     name: 'Scooter',
     role: 'Shop Apprentice',
-    defaultPortrait: '/sprites/portraits/apprentice-duh.png',
+    defaultPortrait: '/sprites/portraits/scooter-pop.png',
   },
 };
 
@@ -140,7 +140,11 @@ export function resolveStaffReply(
     return {
       staffId,
       portraitId:
-        staffId === 'v' ? '/sprites/portraits/v-smirk.png' : meta.defaultPortrait,
+        staffId === 'v'
+          ? '/sprites/portraits/v-smirk.png'
+          : staffId === 'dick'
+            ? '/sprites/portraits/dick-stoked.png'
+            : '/sprites/portraits/scooter-hyped.png',
       moodLabel: 'SHIFT REWARDS',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -173,7 +177,7 @@ export function resolveStaffReply(
     if (staffId === 'dick') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/dick-front.png',
+        portraitId: '/sprites/portraits/dick-smartass.png',
         moodLabel: 'STRAIGHT TALK',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -185,8 +189,8 @@ export function resolveStaffReply(
     }
     return {
       staffId,
-      portraitId: '/sprites/portraits/apprentice-duh.png',
-      moodLabel: 'DUH...',
+      portraitId: '/sprites/portraits/scooter-clueless.png',
+      moodLabel: 'CLUELESS',
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -204,8 +208,8 @@ export function resolveStaffReply(
         staffId === 'v'
           ? '/sprites/portraits/v-eyeroll.png'
           : staffId === 'dick'
-            ? '/sprites/portraits/dick-wtf.png'
-            : meta.defaultPortrait,
+            ? '/sprites/portraits/dick-furious.png'
+            : '/sprites/portraits/scooter-duh.png',
       moodLabel: staffId === 'dick' ? 'READ THE SIGN!' : 'STORE POLICY',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -226,10 +230,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'dick'
-          ? '/sprites/portraits/dick-front.png'
+          ? '/sprites/portraits/dick-eyeroll.png'
           : staffId === 'v'
             ? '/sprites/portraits/v-eyeroll.png'
-            : meta.defaultPortrait,
+            : '/sprites/portraits/scooter-whoa.png',
       moodLabel: 'SERVICE COUNTER',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -249,7 +253,11 @@ export function resolveStaffReply(
     return {
       staffId,
       portraitId:
-        staffId === 'v' ? '/sprites/portraits/v-smirk.png' : meta.defaultPortrait,
+        staffId === 'v'
+          ? '/sprites/portraits/v-smirk.png'
+          : staffId === 'dick'
+            ? '/sprites/portraits/dick-smartass.png'
+            : '/sprites/portraits/scooter-hyped.png',
       moodLabel: 'SERVICE BAYS LIVE',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -282,7 +290,7 @@ export function resolveStaffReply(
     if (staffId === 'scooter') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/apprentice-duh.png',
+        portraitId: '/sprites/portraits/scooter-busted.png',
         moodLabel: 'OOPS...',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -310,7 +318,11 @@ export function resolveStaffReply(
     return {
       staffId,
       portraitId:
-        staffId === 'v' ? '/sprites/portraits/v-smirk.png' : meta.defaultPortrait,
+        staffId === 'v'
+          ? '/sprites/portraits/v-smirk.png'
+          : staffId === 'dick'
+            ? '/sprites/portraits/dick-smartass.png'
+            : '/sprites/portraits/scooter-hyped.png',
       moodLabel: staffId === 'v' ? 'BUY IT.' : 'FOUND ON RACK',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -338,7 +350,7 @@ export function resolveStaffReply(
       line: 'Do I look like Google? Ask about merch, sizing, shop rules, or go clock into a Service Bay before I charge you $200/hr for loitering!',
     },
     scooter: {
-      portrait: '/sprites/portraits/apprentice-duh.png',
+      portrait: '/sprites/portraits/scooter-duh.png',
       mood: 'DUH...',
       line: '*POP!* Uhhh... Dick told me not to answer stuff I don’t know. Wanna see the Shop Humor shirts or play Flat Rate Panic?',
     },

@@ -32,6 +32,8 @@ interface SpriteManifest {
   bikes?: Record<string, ManifestFrame>;
   props?: Record<string, ManifestFrame>;
   tools?: Record<string, ManifestFrame>;
+  vfx?: Record<string, ManifestFrame>;
+  ui?: Record<string, ManifestFrame>;
 }
 
 export interface LoadedSpriteAsset {
@@ -110,6 +112,12 @@ export function preloadAllManifestSprites(): void {
         loadTextureEntry(`tools:${toolId}`, entry.frame, aspect);
       }
     }
+    if (manifest.vfx) {
+      for (const [vfxId, entry] of Object.entries(manifest.vfx)) {
+        const aspect = entry.height > 0 ? entry.width / entry.height : 1;
+        loadTextureEntry(`vfx:${vfxId}`, entry.frame, aspect);
+      }
+    }
   });
 }
 
@@ -172,7 +180,7 @@ export function useCharacterSpriteTexture(
   };
 }
 
-type ManifestCategory = 'bikes' | 'props' | 'tools';
+type ManifestCategory = 'bikes' | 'props' | 'tools' | 'vfx';
 
 function useManifestSpriteAsset(
   category: ManifestCategory,
@@ -230,8 +238,10 @@ function useManifestSpriteAsset(
   return spriteAssetCache.get(key) ?? null;
 }
 
-export function useBikeSpriteTexture(bikeId: BikeSpriteId): LoadedSpriteAsset | null {
-  return useManifestSpriteAsset('bikes', bikeId, `/sprites/bikes/${bikeId}.png`, 1.65);
+export function useBikeSpriteTexture(
+  bikeId: BikeSpriteId | `${BikeSpriteId}-iso` | `${BikeSpriteId}-iso-rear`,
+): LoadedSpriteAsset | null {
+  return useManifestSpriteAsset('bikes', bikeId, `/sprites/bikes/${bikeId}.png`, 1.45);
 }
 
 export function usePropSpriteTexture(propId: string): LoadedSpriteAsset | null {
@@ -240,6 +250,10 @@ export function usePropSpriteTexture(propId: string): LoadedSpriteAsset | null {
 
 export function useToolSpriteTexture(toolId: string): LoadedSpriteAsset | null {
   return useManifestSpriteAsset('tools', toolId, `/sprites/props/tools/${toolId}.png`, 0.9);
+}
+
+export function useVfxSpriteTexture(vfxId: 'sparks' | 'smoke' | 'zap'): LoadedSpriteAsset | null {
+  return useManifestSpriteAsset('vfx', vfxId, `/sprites/vfx/${vfxId}.png`, 1.0);
 }
 
 /**

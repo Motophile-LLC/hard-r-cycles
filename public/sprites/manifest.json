@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T02:51:15.848Z",
+  "generatedAt": "2026-11-24T19:19:40.881Z",
   "source": "D:\\HardRToons\\Assets",
   "targetHeight": 512,
   "characters": {
@@ -132,6 +132,100 @@
         "height": 512,
         "anchor": "bottom-center"
       }
+    },
+    "dick": {
+      "back-three-quarter": {
+        "frame": "/sprites/characters/dick/back-three-quarter.png",
+        "width": 202,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "leaning": {
+        "frame": "/sprites/characters/dick/leaning.png",
+        "width": 238,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "clipboard": {
+        "frame": "/sprites/characters/dick/clipboard.png",
+        "width": 204,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "get-out": {
+        "frame": "/sprites/characters/dick/get-out.png",
+        "width": 194,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "scooter": {
+      "back-three-quarter": {
+        "frame": "/sprites/characters/scooter/back-three-quarter.png",
+        "width": 182,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "sweeping": {
+        "frame": "/sprites/characters/scooter/sweeping.png",
+        "width": 268,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "dropped-it": {
+        "frame": "/sprites/characters/scooter/dropped-it.png",
+        "width": 216,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "parts-pitch": {
+        "frame": "/sprites/characters/scooter/parts-pitch.png",
+        "width": 208,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "bay-tech-a": {
+      "wrenching": {
+        "frame": "/sprites/characters/bay-tech-a/wrenching.png",
+        "width": 186,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "at-lift": {
+        "frame": "/sprites/characters/bay-tech-a/at-lift.png",
+        "width": 218,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "bay-tech-b": {
+      "wrenching": {
+        "frame": "/sprites/characters/bay-tech-b/wrenching.png",
+        "width": 212,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "at-lift": {
+        "frame": "/sprites/characters/bay-tech-b/at-lift.png",
+        "width": 218,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
+    },
+    "bay-tech-c": {
+      "wrenching": {
+        "frame": "/sprites/characters/bay-tech-c/wrenching.png",
+        "width": 200,
+        "height": 512,
+        "anchor": "bottom-center"
+      },
+      "at-lift": {
+        "frame": "/sprites/characters/bay-tech-c/at-lift.png",
+        "width": 216,
+        "height": 512,
+        "anchor": "bottom-center"
+      }
     }
   },
   "bikes": {
@@ -152,6 +246,42 @@
       "width": 774,
       "height": 512,
       "anchor": "bottom-center"
+    },
+    "track-bagger-iso": {
+      "frame": "/sprites/bikes/track-bagger-iso.png",
+      "width": 584,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "track-bagger-iso-rear": {
+      "frame": "/sprites/bikes/track-bagger-iso-rear.png",
+      "width": 478,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "bigwheel-bagger-iso": {
+      "frame": "/sprites/bikes/bigwheel-bagger-iso.png",
+      "width": 544,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "bigwheel-bagger-iso-rear": {
+      "frame": "/sprites/bikes/bigwheel-bagger-iso-rear.png",
+      "width": 514,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "club-dyna-iso": {
+      "frame": "/sprites/bikes/club-dyna-iso.png",
+      "width": 486,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "club-dyna-iso-rear": {
+      "frame": "/sprites/bikes/club-dyna-iso-rear.png",
+      "width": 458,
+      "height": 512,
+      "anchor": "bottom-center"
     }
   },
   "portraits": {
@@ -162,7 +292,7 @@
     },
     "dick-wtf": {
       "frame": "/sprites/portraits/dick-wtf.png",
-      "width": 256,
+      "width": 222,
       "height": 256
     },
     "apprentice-duh": {
@@ -199,6 +329,61 @@
       "frame": "/sprites/portraits/v-smirk.png",
       "width": 220,
       "height": 256
+    },
+    "dick-glaring": {
+      "frame": "/sprites/portraits/dick-glaring.png",
+      "width": 214,
+      "height": 256
+    },
+    "dick-smartass": {
+      "frame": "/sprites/portraits/dick-smartass.png",
+      "width": 214,
+      "height": 256
+    },
+    "dick-furious": {
+      "frame": "/sprites/portraits/dick-furious.png",
+      "width": 228,
+      "height": 256
+    },
+    "dick-eyeroll": {
+      "frame": "/sprites/portraits/dick-eyeroll.png",
+      "width": 208,
+      "height": 256
+    },
+    "dick-stoked": {
+      "frame": "/sprites/portraits/dick-stoked.png",
+      "width": 202,
+      "height": 256
+    },
+    "scooter-duh": {
+      "frame": "/sprites/portraits/scooter-duh.png",
+      "width": 192,
+      "height": 256
+    },
+    "scooter-hyped": {
+      "frame": "/sprites/portraits/scooter-hyped.png",
+      "width": 196,
+      "height": 256
+    },
+    "scooter-busted": {
+      "frame": "/sprites/portraits/scooter-busted.png",
+      "width": 190,
+      "height": 256
+    },
+    "scooter-clueless": {
+      "frame": "/sprites/portraits/scooter-clueless.png",
+      "width": 190,
+      "height": 256
+    },
+    "scooter-pop": {
+      "frame": "/sprites/portraits/scooter-pop.png",
+      "width": 190,
+      "height": 256
+    },
+    "scooter-whoa": {
+      "frame": "/sprites/portraits/scooter-whoa.png",
+      "width": 190,
+      "height": 256
     }
   },
   "props": {
@@ -221,6 +406,31 @@
       "frame": "/sprites/props/breaker-box.png",
       "width": 276,
       "height": 512
+    },
+    "sign-labor-rate": {
+      "frame": "/sprites/props/signs/sign-labor-rate.png",
+      "width": 570,
+      "height": 256
+    },
+    "sign-no-refunds": {
+      "frame": "/sprites/props/signs/sign-no-refunds.png",
+      "width": 412,
+      "height": 256
+    },
+    "sign-cash-only": {
+      "frame": "/sprites/props/signs/sign-cash-only.png",
+      "width": 410,
+      "height": 256
+    },
+    "sign-safety-3rd": {
+      "frame": "/sprites/props/signs/sign-safety-3rd.png",
+      "width": 310,
+      "height": 256
+    },
+    "sign-oil-leaks": {
+      "frame": "/sprites/props/signs/sign-oil-leaks.png",
+      "width": 332,
+      "height": 256
     }
   },
   "tools": {
@@ -253,6 +463,50 @@
       "frame": "/sprites/props/tools/brake_cleaner.png",
       "width": 101,
       "height": 256
+    }
+  },
+  "vfx": {
+    "sparks": {
+      "frame": "/sprites/vfx/sparks.png",
+      "width": 260,
+      "height": 256
+    },
+    "smoke": {
+      "frame": "/sprites/vfx/smoke.png",
+      "width": 278,
+      "height": 256
+    },
+    "zap": {
+      "frame": "/sprites/vfx/zap.png",
+      "width": 186,
+      "height": 256
+    }
+  },
+  "ui": {
+    "icon-apparel": {
+      "frame": "/sprites/ui/icon-apparel.png",
+      "width": 134,
+      "height": 128
+    },
+    "icon-parts": {
+      "frame": "/sprites/ui/icon-parts.png",
+      "width": 136,
+      "height": 128
+    },
+    "icon-service": {
+      "frame": "/sprites/ui/icon-service.png",
+      "width": 134,
+      "height": 128
+    },
+    "icon-bays": {
+      "frame": "/sprites/ui/icon-bays.png",
+      "width": 136,
+      "height": 128
+    },
+    "icon-cart": {
+      "frame": "/sprites/ui/icon-cart.png",
+      "width": 132,
+      "height": 128
     }
   }
 }

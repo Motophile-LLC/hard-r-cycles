@@ -2,7 +2,17 @@ import * as THREE from 'three';
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 
-export type CharacterId = 'mechanic' | 'shop-buddy' | 'service-writer' | 'v' | 'customers';
+export type CharacterId =
+  | 'mechanic'
+  | 'shop-buddy'
+  | 'service-writer'
+  | 'v'
+  | 'customers'
+  | 'dick'
+  | 'scooter'
+  | 'bay-tech-a'
+  | 'bay-tech-b'
+  | 'bay-tech-c';
 
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
