@@ -62,11 +62,11 @@
 | **Brand** | Official Hard R Cycles Stencil Logo | **LOCKED** | [hard_r_cycles_logo.jpg](file:///d:/HardRCyclessite/planning/brand/hard_r_cycles_logo.jpg) |
 | **Sheet 01** | Master Dealership Floorplan & Isometric Layout | **LOCKED** | [Sheet_01_Master_Floorplan.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_01_Master_Floorplan.jpg) |
 | **Sheet 02** | "V" — Master Character & Mood Sheet | **LOCKED** | [Sheet_02_V_Master.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_02_V_Master.jpg) |
-| **Sheet 03** | Dick — Expansion Sheet (Back-3/4, Counter Poses, 6–8 Moods) | Pending (cooldown) | Builds on `d:\HardRToons\Assets\Dick_Color_Sheet.jpeg` |
-| **Sheet 04** | Scooter — Expansion Sheet (Back-3/4, Floor Poses, 6 Moods) | Pending (cooldown) | Builds on `d:\HardRToons\Assets\Apprentice_Color_Sheet.jpeg` |
-| **Sheet 05** | Live Bay Tech Variants (2–3 isometric wrenching mechanics) | Pending (cooldown) | Prevents 3 identical Dicks in Bays 1–3 |
-| **Sheet 06** | Props, Signage & Surfaces Kit (with Official Stencil Logo) | Pending (cooldown) | Racks, hat wall, counter, 18+ Front Door, textures |
-| **Sheet 07** | Isometric Bikes, VFX & UI Kit | Pending (cooldown) | Aligns 3 existing bikes + sparks/smoke/zaps + comic HUD |
+| **Sheet 03** | Dick — Expansion Sheet (Back-3/4, Counter Poses, 6 Moods) | **GENERATED** | [Sheet_03_Dick_Expansion.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_03_Dick_Expansion.jpg) |
+| **Sheet 04** | Scooter — Expansion Sheet (Back-3/4, Floor Poses, 6 Moods) | **GENERATED** | [Sheet_04_Scooter_Expansion.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_04_Scooter_Expansion.jpg) |
+| **Sheet 05** | Live Bay Tech Variants (3 isometric wrenching mechanics) | **GENERATED** | [Sheet_05_Live_Bay_Techs.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_05_Live_Bay_Techs.jpg) |
+| **Sheet 06** | Props, Signage & Surfaces Kit (with Official Stencil Logo) | **GENERATED** | [Sheet_06_Props_Signage_Kit.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_06_Props_Signage_Kit.jpg) |
+| **Sheet 07** | Isometric Bikes, VFX & UI Kit | **GENERATED** | [Sheet_07_Isometric_Bikes_VFX_UI.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_07_Isometric_Bikes_VFX_UI.jpg) |
 
 *(Saved for Phase 2+: Customer 1–3 & Dyna Bro expansion poses, Cinderblock Chopper Easter egg, VIN Diagnostic Counter UI.)*
 
