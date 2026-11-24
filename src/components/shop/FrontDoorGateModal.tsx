@@ -1,10 +1,10 @@
 'use client';
 
-import { ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { useShopStore } from '@/store/useShopStore';
+import { withSpriteVersion } from '@/utils/spriteVersion';
 
 export function FrontDoorGateModal() {
   const isAgeVerified = useShopStore((s) => s.isAgeVerified);
@@ -70,8 +70,13 @@ export function FrontDoorGateModal() {
         </div>
 
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-3 border-black bg-red-600 text-white shadow-[3px_3px_0px_#000]">
-            <ShieldAlert className="h-6 w-6" aria-hidden="true" />
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-3 border-black bg-amber-200 shadow-[3px_3px_0px_#000]">
+            <Image
+              src={withSpriteVersion('/sprites/portraits/dick-glaring.png')}
+              alt="Dick glaring at the front door"
+              fill
+              className="object-contain object-top pt-0.5"
+            />
           </div>
           <div>
             <p className="text-[11px] font-black uppercase tracking-widest text-red-700">

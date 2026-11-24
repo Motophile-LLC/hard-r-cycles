@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import type { BikeSpriteId } from '@/types/game';
 import { getProceduralSpriteTexture, type CharacterId } from '@/utils/proceduralSprites';
+import { withSpriteVersion } from '@/utils/spriteVersion';
 
 // Shared 3-tone cel-shading gradient map (#ffffff, #989898, #282828)
 const gradientData = new Uint8Array([
@@ -42,15 +43,67 @@ export interface LoadedSpriteAsset {
 }
 
 let manifestPromise: Promise<SpriteManifest | null> | null = null;
+let preloadStarted = false;
 const spriteAssetCache = new Map<string, LoadedSpriteAsset>();
 const rawTextureCache = new Map<string, THREE.Texture>();
 const pendingLoads = new Set<string>();
+const rawPendingLoads = new Set<string>();
+const assetListeners = new Map<string, Set<() => void>>();
+const rawTextureListeners = new Map<string, Set<() => void>>();
 let concreteFloorTexture: THREE.CanvasTexture | null = null;
+
+function subscribeAsset(key: string, cb: () => void): () => void {
+  let listeners = assetListeners.get(key);
+  if (!listeners) {
+    listeners = new Set();
+    assetListeners.set(key, listeners);
+  }
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+    if (listeners.size === 0) {
+      assetListeners.delete(key);
+    }
+  };
+}
+
+function notifyAsset(key: string): void {
+  const listeners = assetListeners.get(key);
+  if (!listeners) return;
+  for (const cb of [...listeners]) {
+    cb();
+  }
+}
+
+function subscribeRawTexture(url: string, cb: () => void): () => void {
+  let listeners = rawTextureListeners.get(url);
+  if (!listeners) {
+    listeners = new Set();
+    rawTextureListeners.set(url, listeners);
+  }
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+    if (listeners.size === 0) {
+      rawTextureListeners.delete(url);
+    }
+  };
+}
+
+function notifyRawTexture(url: string): void {
+  const listeners = rawTextureListeners.get(url);
+  if (!listeners) return;
+  for (const cb of [...listeners]) {
+    cb();
+  }
+}
 
 function fetchSpriteManifest(): Promise<SpriteManifest | null> {
   if (typeof window === 'undefined') return Promise.resolve(null);
   if (!manifestPromise) {
-    manifestPromise = fetch('/sprites/manifest.json')
+    manifestPromise = fetch(withSpriteVersion('/sprites/manifest.json'), {
+      cache: 'no-cache',
+    })
       .then((res) => (res.ok ? (res.json() as Promise<SpriteManifest>) : null))
       .catch(() => null);
   }
@@ -63,7 +116,7 @@ function loadTextureEntry(key: string, framePath: string, aspectHint: number): v
 
   const loader = new THREE.TextureLoader();
   loader.load(
-    framePath,
+    withSpriteVersion(framePath),
     (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.anisotropy = 16;
@@ -75,6 +128,7 @@ function loadTextureEntry(key: string, framePath: string, aspectHint: number): v
         img?.width && img?.height ? img.width / img.height : aspectHint;
       spriteAssetCache.set(key, { texture, aspect: computedAspect });
       pendingLoads.delete(key);
+      notifyAsset(key);
     },
     undefined,
     () => {
@@ -84,6 +138,8 @@ function loadTextureEntry(key: string, framePath: string, aspectHint: number): v
 }
 
 export function preloadAllManifestSprites(): void {
+  if (preloadStarted) return;
+  preloadStarted = true;
   void fetchSpriteManifest().then((manifest) => {
     if (!manifest) return;
     if (manifest.characters) {
@@ -131,43 +187,29 @@ export function useCharacterSpriteTexture(
   useEffect(() => {
     preloadAllManifestSprites();
     let active = true;
-
-    if (spriteAssetCache.has(key)) {
-      return;
-    }
-
-    void fetchSpriteManifest().then((manifest) => {
-      if (!active) return;
-      const entry = manifest?.characters?.[character]?.[pose];
-      if (!entry) return;
-
-      const aspectHint = entry.height > 0 ? entry.width / entry.height : 0.7;
-      if (spriteAssetCache.has(key)) {
-        setTick((t) => t + 1);
-        return;
-      }
-
-      const loader = new THREE.TextureLoader();
-      loader.load(
-        entry.frame,
-        (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-          texture.anisotropy = 16;
-          texture.needsUpdate = true;
-          const img = texture.image as { width?: number; height?: number } | undefined;
-          const aspect = img?.width && img?.height ? img.width / img.height : aspectHint;
-          spriteAssetCache.set(key, { texture, aspect });
-          if (active) setTick((t) => t + 1);
-        },
-        undefined,
-        () => {
-          // Keep procedural fallback if file fails
-        },
-      );
+    const unsubscribe = subscribeAsset(key, () => {
+      if (active) setTick((t) => t + 1);
     });
+
+    if (!spriteAssetCache.has(key)) {
+      const directFallbackUrl = `/sprites/characters/${character}/${pose}.png`;
+      void fetchSpriteManifest().then((manifest) => {
+        if (!active) return;
+        if (spriteAssetCache.has(key)) {
+          setTick((t) => t + 1);
+          return;
+        }
+        const entry = manifest?.characters?.[character]?.[pose];
+        const frameUrl = entry?.frame ?? directFallbackUrl;
+        const aspectHint =
+          entry && entry.height > 0 ? entry.width / entry.height : 0.65;
+        loadTextureEntry(key, frameUrl, aspectHint);
+      });
+    }
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [character, pose, key]);
 
@@ -194,44 +236,28 @@ function useManifestSpriteAsset(
   useEffect(() => {
     preloadAllManifestSprites();
     let active = true;
-
-    if (spriteAssetCache.has(key)) {
-      return;
-    }
-
-    void fetchSpriteManifest().then((manifest) => {
-      if (!active) return;
-      const entry = manifest?.[category]?.[itemId];
-      const frameUrl = entry?.frame ?? fallbackUrl;
-      const aspectHint =
-        entry && entry.height > 0 ? entry.width / entry.height : defaultAspect;
-
-      if (spriteAssetCache.has(key)) {
-        if (active) setTick((t) => t + 1);
-        return;
-      }
-
-      const loader = new THREE.TextureLoader();
-      loader.load(
-        frameUrl,
-        (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-          texture.anisotropy = 16;
-          texture.needsUpdate = true;
-          const img = texture.image as { width?: number; height?: number } | undefined;
-          const aspect = img?.width && img?.height ? img.width / img.height : aspectHint;
-          spriteAssetCache.set(key, { texture, aspect });
-          if (active) setTick((t) => t + 1);
-        },
-        undefined,
-        () => {
-          // Allow graceful fallback if sprite asset fails to load
-        },
-      );
+    const unsubscribe = subscribeAsset(key, () => {
+      if (active) setTick((t) => t + 1);
     });
+
+    if (!spriteAssetCache.has(key)) {
+      void fetchSpriteManifest().then((manifest) => {
+        if (!active) return;
+        if (spriteAssetCache.has(key)) {
+          setTick((t) => t + 1);
+          return;
+        }
+        const entry = manifest?.[category]?.[itemId];
+        const frameUrl = entry?.frame ?? fallbackUrl;
+        const aspectHint =
+          entry && entry.height > 0 ? entry.width / entry.height : defaultAspect;
+        loadTextureEntry(key, frameUrl, aspectHint);
+      });
+    }
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [category, itemId, fallbackUrl, defaultAspect, key]);
 
@@ -376,23 +402,33 @@ export function useShopBackgroundTexture(url: string): THREE.Texture | null {
   useEffect(() => {
     if (rawTextureCache.has(url)) return;
     let active = true;
+    const unsubscribe = subscribeRawTexture(url, () => {
+      if (active) setTick((t) => t + 1);
+    });
 
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      url,
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = 8;
-        texture.needsUpdate = true;
-        rawTextureCache.set(url, texture);
-        if (active) setTick((t) => t + 1);
-      },
-      undefined,
-      () => {},
-    );
+    if (!rawPendingLoads.has(url)) {
+      rawPendingLoads.add(url);
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        withSpriteVersion(url),
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = 8;
+          texture.needsUpdate = true;
+          rawTextureCache.set(url, texture);
+          rawPendingLoads.delete(url);
+          notifyRawTexture(url);
+        },
+        undefined,
+        () => {
+          rawPendingLoads.delete(url);
+        },
+      );
+    }
 
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [url]);
 

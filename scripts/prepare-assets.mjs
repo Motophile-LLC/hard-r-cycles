@@ -19,6 +19,7 @@ const OUT_CHARACTERS_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'characters'
 const OUT_V_DIR = path.join(OUT_CHARACTERS_DIR, 'v');
 const OUT_CUSTOMERS_DIR = path.join(OUT_CHARACTERS_DIR, 'customers');
 const OUT_PORTRAITS_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'portraits');
+const OUT_PROPS_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'props');
 const OUT_SIGNS_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'props', 'signs');
 const OUT_BIKES_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'bikes');
 const OUT_VFX_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'vfx');
@@ -776,6 +777,99 @@ async function main() {
         frame: `/sprites/props/signs/${id}.png`,
         width: dims.width,
         height: dims.height,
+      };
+    }
+
+    const heroPropSpecs = [
+      [
+        'prop-hanging-logo',
+        { left: 49, top: 74, width: 326, height: 274 },
+        {
+          anchor: 'center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-apparel-rack',
+        { left: 37, top: 392, width: 288, height: 332 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: {
+            skipInnerPockets: false,
+            borderTol: 42,
+            innerPocketDist: 28,
+            minPocketArea: 60,
+            protectHeadEyes: false,
+          },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-hat-pegboard',
+        { left: 340, top: 343, width: 206, height: 268 },
+        {
+          anchor: 'center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepComponents: [[0.5, 0.45]],
+        },
+      ],
+      [
+        'prop-sticker-table',
+        { left: 370, top: 549, width: 192, height: 171 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: {
+            skipInnerPockets: false,
+            borderTol: 42,
+            innerPocketDist: 28,
+            minPocketArea: 60,
+            protectHeadEyes: false,
+          },
+          keepComponents: [[0.55, 0.55]],
+          maskRects: [[0, 0, 0.18, 0.08]],
+        },
+      ],
+      [
+        'prop-service-counter',
+        { left: 581, top: 409, width: 292, height: 300 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-front-door',
+        { left: 892, top: 358, width: 228, height: 353 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-breaker-box',
+        { left: 1148, top: 393, width: 191, height: 309 },
+        {
+          anchor: 'center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+    ];
+
+    for (const [id, region, opts] of heroPropSpecs) {
+      const outPath = path.join(OUT_PROPS_DIR, `${id}.png`);
+      const dims = await extractCutout(SHEET_06_SRC, region, outPath, {
+        targetHeight: TARGET_HEIGHT,
+        ...opts,
+      });
+      manifest.props[id] = {
+        frame: `/sprites/props/${id}.png`,
+        width: dims.width,
+        height: dims.height,
+        anchor: opts.anchor,
       };
     }
   }

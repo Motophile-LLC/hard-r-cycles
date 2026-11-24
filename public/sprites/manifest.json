@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T19:19:40.881Z",
+  "generatedAt": "2026-11-24T19:49:40.590Z",
   "source": "D:\\HardRToons\\Assets",
   "targetHeight": 512,
   "characters": {
@@ -431,6 +431,48 @@
       "frame": "/sprites/props/signs/sign-oil-leaks.png",
       "width": 332,
       "height": 256
+    },
+    "prop-hanging-logo": {
+      "frame": "/sprites/props/prop-hanging-logo.png",
+      "width": 618,
+      "height": 512,
+      "anchor": "center"
+    },
+    "prop-apparel-rack": {
+      "frame": "/sprites/props/prop-apparel-rack.png",
+      "width": 450,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-hat-pegboard": {
+      "frame": "/sprites/props/prop-hat-pegboard.png",
+      "width": 400,
+      "height": 512,
+      "anchor": "center"
+    },
+    "prop-sticker-table": {
+      "frame": "/sprites/props/prop-sticker-table.png",
+      "width": 586,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-service-counter": {
+      "frame": "/sprites/props/prop-service-counter.png",
+      "width": 506,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-front-door": {
+      "frame": "/sprites/props/prop-front-door.png",
+      "width": 338,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-breaker-box": {
+      "frame": "/sprites/props/prop-breaker-box.png",
+      "width": 324,
+      "height": 512,
+      "anchor": "center"
     }
   },
   "tools": {

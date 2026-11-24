@@ -40,10 +40,10 @@ const INITIAL_BAYS: LiveBayOccupant[] = [
   {
     bayIndex: 3,
     isRealPlayer: false,
-    playerName: 'OPEN BAY',
+    playerName: "NPC: Wrenchin' Walt",
     bikeSprite: 'club-dyna',
-    activity: 'IDLE',
-    statusText: 'Click lift to clock in!',
+    activity: 'CHAOS_SMOKE',
+    statusText: 'Club Dyna • Exhaust Stud',
     updatedAt: 0,
   },
 ];

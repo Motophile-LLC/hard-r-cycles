@@ -18,18 +18,16 @@ import { SafeHtml as Html } from './SafeHtml';
 import {
   getComicSignPlaqueTexture,
   getGarageWallTexture,
-  getHangingTeeTexture,
-  getHatPegboardTexture,
   getPartsPegboardTexture,
   getRollupBayDoorTexture,
   getShopFloorTexture,
   getToolChestFrontTexture,
-  getWeatheredCounterTexture,
 } from '@/utils/dealershipTextures';
 import {
   TOON_GRADIENT_MAP,
   useBikeSpriteTexture,
   useCharacterSpriteTexture,
+  usePropSpriteTexture,
   useShopBackgroundTexture,
   useVfxSpriteTexture,
 } from './ToonMaterial';
@@ -159,6 +157,7 @@ function AmbientCustomerMesh({ event }: { event: AmbientCustomerEvent }) {
           <mesh position={[0, height / 2, 0]}>
             <planeGeometry args={[width, height]} />
             <meshBasicMaterial
+              key={texture.uuid}
               map={texture}
               alphaTest={0.5}
               depthWrite={true}
@@ -313,6 +312,7 @@ function StaffCharacterStandee({
           <mesh position={[0, height / 2, 0]}>
             <planeGeometry args={[spriteWidth, height]} />
             <meshBasicMaterial
+              key={texture.uuid}
               map={texture}
               alphaTest={0.5}
               depthWrite={true}
@@ -350,23 +350,21 @@ function StaffCharacterStandee({
 
 function ApparelRack3D({
   position,
-  rotationY = 0,
   label,
-  shirtSpecs,
   onClick,
 }: {
   position: [number, number, number];
-  rotationY?: number;
   label: string;
-  shirtSpecs: { color: string; motif: 'skull' | 'wrench' | 'stencil' | 'braap' }[];
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const rackAsset = usePropSpriteTexture('prop-apparel-rack');
+  const rackHeight = 2.32;
+  const rackWidth = rackAsset ? rackHeight * rackAsset.aspect : 2.02;
 
   return (
     <group
       position={position}
-      rotation={[0, rotationY, 0]}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -381,50 +379,40 @@ function ApparelRack3D({
         document.body.style.cursor = 'auto';
       }}
     >
-      {/* Metal pipe base & posts */}
-      <mesh position={[0, 0.05, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.1, 0.08, 0.65]} />
-        <meshToonMaterial color={hovered ? '#fbbf24' : '#334155'} gradientMap={TOON_GRADIENT_MAP} />
-        <Edges color="#111111" />
-      </mesh>
-      <mesh position={[-0.95, 0.85, 0]} castShadow>
-        <cylinderGeometry args={[0.045, 0.045, 1.6, 8]} />
-        <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-      </mesh>
-      <mesh position={[0.95, 0.85, 0]} castShadow>
-        <cylinderGeometry args={[0.045, 0.045, 1.6, 8]} />
-        <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-      </mesh>
-      <mesh position={[0, 1.62, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.045, 0.045, 2.0, 8]} />
-        <meshToonMaterial color="#64748b" gradientMap={TOON_GRADIENT_MAP} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} raycast={() => null}>
+        <circleGeometry args={[hovered ? 0.96 : 0.78, 24]} />
+        <meshBasicMaterial
+          color={hovered ? '#fbbf24' : '#09090b'}
+          transparent
+          opacity={hovered ? 0.55 : 0.28}
+          depthWrite={false}
+        />
       </mesh>
 
-      {/* Hanging hand-inked graphic tees */}
-      {shirtSpecs.map((spec, idx) => {
-        const x = -0.68 + idx * 0.27;
-        const teeTex = getHangingTeeTexture(spec.color, spec.motif);
-        return (
-          <group key={`${spec.color}-${spec.motif}-${idx}`} position={[x, 1.15, 0]}>
-            <mesh position={[0, 0.42, 0]}>
-              <cylinderGeometry args={[0.014, 0.014, 0.14, 6]} />
-              <meshBasicMaterial color="#111111" />
-            </mesh>
-            <mesh castShadow>
-              <boxGeometry args={[0.1, 0.72, 0.5]} />
-              {teeTex ? (
-                <meshBasicMaterial map={teeTex} />
-              ) : (
-                <meshToonMaterial color={spec.color} gradientMap={TOON_GRADIENT_MAP} />
-              )}
-              <Edges color="#111111" />
-            </mesh>
-          </group>
-        );
-      })}
+      {rackAsset ? (
+        <Billboard follow>
+          <mesh position={[0, rackHeight / 2, 0]}>
+            <planeGeometry args={[rackWidth, rackHeight]} />
+            <meshBasicMaterial
+              key={rackAsset.texture.uuid}
+              map={rackAsset.texture}
+              alphaTest={0.5}
+              depthWrite={true}
+              color={hovered ? '#fef08a' : '#ffffff'}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </Billboard>
+      ) : (
+        <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.4, 1.8, 0.5]} />
+          <meshToonMaterial color={hovered ? '#fbbf24' : '#334155'} gradientMap={TOON_GRADIENT_MAP} />
+          <Edges color="#111111" />
+        </mesh>
+      )}
 
       {hovered ? (
-        <Html center position={[0, 2.05, 0]} distanceFactor={14}>
+        <Html center position={[0, rackHeight + 0.18, 0]} distanceFactor={14}>
           <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
             {label}
           </span>
@@ -494,7 +482,7 @@ function LiveServiceBay3D({
     }
   });
 
-  const bikeH = 1.62;
+  const bikeH = 1.88;
   const bikeW = bikeAsset ? bikeH * bikeAsset.aspect : 2.35;
   const techH = 1.72;
   const techW = techH * techAspect;
@@ -578,10 +566,11 @@ function LiveServiceBay3D({
         </mesh>
 
         {bikeAsset ? (
-          <Billboard follow={false} position={[0, 0.5 + bikeH / 2, 0]}>
-            <mesh rotation={[0, -0.08, 0]}>
+          <Billboard follow position={[0, 0.44 + bikeH / 2, 0]}>
+            <mesh>
               <planeGeometry args={[bikeW, bikeH]} />
               <meshBasicMaterial
+                key={bikeAsset.texture.uuid}
                 map={bikeAsset.texture}
                 alphaTest={0.5}
                 depthWrite={true}
@@ -600,6 +589,7 @@ function LiveServiceBay3D({
               <mesh position={[0, techH / 2, 0]}>
                 <planeGeometry args={[techW, techH]} />
                 <meshBasicMaterial
+                  key={techTex.uuid}
                   map={techTex}
                   alphaTest={0.5}
                   depthWrite={true}
@@ -620,6 +610,7 @@ function LiveServiceBay3D({
               <mesh>
                 <planeGeometry args={[0.82 * sparksVfx.aspect, 0.82]} />
                 <meshBasicMaterial
+                  key={sparksVfx.texture.uuid}
                   map={sparksVfx.texture}
                   transparent
                   alphaTest={0.3}
@@ -645,6 +636,7 @@ function LiveServiceBay3D({
               <mesh>
                 <planeGeometry args={[0.96 * smokeVfx.aspect, 0.96]} />
                 <meshBasicMaterial
+                  key={smokeVfx.texture.uuid}
                   map={smokeVfx.texture}
                   transparent
                   alphaTest={0.25}
@@ -673,6 +665,7 @@ function LiveServiceBay3D({
             <mesh>
               <planeGeometry args={[0.9 * zapVfx.aspect, 0.9]} />
               <meshBasicMaterial
+                key={zapVfx.texture.uuid}
                 map={zapVfx.texture}
                 transparent
                 alphaTest={0.3}
@@ -694,7 +687,7 @@ function LiveServiceBay3D({
           className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_#000] transition-transform hover:scale-105 ${
             bay.isRealPlayer
               ? 'bg-emerald-300 text-black'
-              : bay.activity === 'IDLE'
+              : bay.activity === 'IDLE' || bay.bayIndex === 3
                 ? 'bg-amber-300 text-black'
                 : 'bg-zinc-900 text-white'
           }`}
@@ -713,7 +706,9 @@ function LiveServiceBay3D({
               ? `LIVE: ${bay.playerName}`
               : bay.activity === 'IDLE'
                 ? `BAY ${bay.bayIndex} • PLAY`
-                : `BAY ${bay.bayIndex} • ${bay.playerName}`}
+                : bay.bayIndex === 3
+                  ? `BAY 3 • PLAY (${bay.playerName.replace('NPC: ', '')})`
+                  : `BAY ${bay.bayIndex} • ${bay.playerName}`}
           </span>
         </button>
       </Html>
@@ -759,8 +754,15 @@ function WallSignPlaque({
 export function DealershipScene() {
   const isTouch = useCoarsePointer();
   const liveBays = useShopStore((s) => s.liveBays);
-  const logoTex = useShopBackgroundTexture('/brand/hard-r-cycles-logo.png');
-  const breakerTex = useShopBackgroundTexture('/sprites/props/breaker-box.png');
+  const [hatZoneHovered, setHatZoneHovered] = useState(false);
+  const [counterHovered, setCounterHovered] = useState(false);
+
+  const hangingLogoAsset = usePropSpriteTexture('prop-hanging-logo');
+  const hatPegAsset = usePropSpriteTexture('prop-hat-pegboard');
+  const stickerTableAsset = usePropSpriteTexture('prop-sticker-table');
+  const counterAsset = usePropSpriteTexture('prop-service-counter');
+  const frontDoorAsset = usePropSpriteTexture('prop-front-door');
+  const breakerBoxAsset = usePropSpriteTexture('prop-breaker-box');
 
   const signNoRefundsTex = useShopBackgroundTexture('/sprites/props/signs/sign-no-refunds.png');
   const signCashOnlyTex = useShopBackgroundTexture('/sprites/props/signs/sign-cash-only.png');
@@ -771,9 +773,7 @@ export function DealershipScene() {
   const shopFloorTex = useMemo(() => getShopFloorTexture(), []);
   const wallLeftTex = useMemo(() => getGarageWallTexture('left'), []);
   const wallBackTex = useMemo(() => getGarageWallTexture('back'), []);
-  const counterFrontTex = useMemo(() => getWeatheredCounterTexture(), []);
   const partsPegTex = useMemo(() => getPartsPegboardTexture(), []);
-  const hatPegTex = useMemo(() => getHatPegboardTexture(), []);
   const rollupDoorTex = useMemo(() => getRollupBayDoorTexture(), []);
   const toolChestTex = useMemo(() => getToolChestFrontTexture(), []);
 
@@ -957,76 +957,17 @@ export function DealershipScene() {
       ))}
 
       {/* ================= ZONE 1: FRONT ENTRY DOOR (BOTTOM-LEFT CUTAWAY) ================= */}
-      <group position={[-4.4, 0.14, 4.65]}>
-        <mesh position={[-1.05, 1.0, 0]} castShadow>
-          <boxGeometry args={[0.16, 2.0, 0.16]} />
-          <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[1.05, 1.0, 0]} castShadow>
-          <boxGeometry args={[0.16, 2.0, 0.16]} />
-          <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0, 1.98, 0]} castShadow>
-          <boxGeometry args={[2.26, 0.16, 0.18]} />
-          <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[-0.95, 0.95, -0.5]} rotation={[0, 0.65, 0]}>
-          <boxGeometry args={[0.06, 1.85, 0.95]} />
-          <meshToonMaterial color="#38bdf8" transparent opacity={0.32} gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0.95, 0.95, -0.5]} rotation={[0, -0.65, 0]}>
-          <boxGeometry args={[0.06, 1.85, 0.95]} />
-          <meshToonMaterial color="#38bdf8" transparent opacity={0.32} gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {welcomeMatTex ? (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.55]}>
-            <planeGeometry args={[1.65, 0.85]} />
-            <meshBasicMaterial map={welcomeMatTex} polygonOffset polygonOffsetFactor={-1} />
-          </mesh>
-        ) : null}
-      </group>
-
-      {/* ================= ZONE 2: APPAREL RACKS & V (LEFT / BACK-LEFT) ================= */}
-      <ApparelRack3D
-        position={[-5.25, 0.12, -2.35]}
-        rotationY={Math.PI / 2}
-        label="Shop Humor Rack (6)"
-        shirtSpecs={[
-          { color: '#18181b', motif: 'skull' },
-          { color: '#7f1d1d', motif: 'wrench' },
-          { color: '#1e293b', motif: 'stencil' },
-          { color: '#27272a', motif: 'braap' },
-          { color: '#334155', motif: 'skull' },
-          { color: '#18181b', motif: 'wrench' },
-        ]}
-        onClick={() => openApparel('rack_1_humor')}
-      />
-      <ApparelRack3D
-        position={[-5.25, 0.12, 0.65]}
-        rotationY={Math.PI / 2}
-        label="Definition Rack (10)"
-        shirtSpecs={[
-          { color: '#111827', motif: 'stencil' },
-          { color: '#3f3f46', motif: 'braap' },
-          { color: '#4d7c0f', motif: 'wrench' },
-          { color: '#1e3a8a', motif: 'skull' },
-          { color: '#7c2d12', motif: 'braap' },
-          { color: '#18181b', motif: 'stencil' },
-        ]}
-        onClick={() => openApparel('rack_2_definition')}
-      />
-
-      {/* Hat Pegboard Wall + Talkin Braap Feature Table */}
       <group
-        position={[-4.55, 0.12, -4.38]}
+        position={[-4.4, 0.12, 4.45]}
         onClick={(e) => {
           e.stopPropagation();
-          openApparel('wall_braap');
+          useShopStore
+            .getState()
+            .pushOverheadBark(
+              'dick',
+              "Door's open, boots wiped — go buy something!",
+              4200,
+            );
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -1036,32 +977,116 @@ export function DealershipScene() {
           document.body.style.cursor = 'auto';
         }}
       >
-        <mesh position={[0, 2.2, 0]} castShadow>
-          <boxGeometry args={[2.22, 1.38, 0.08]} />
-          <meshToonMaterial color="#6b4f32" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {hatPegTex ? (
-          <mesh position={[0, 2.2, 0.05]} raycast={() => null}>
-            <planeGeometry args={[2.1, 1.26]} />
-            <meshBasicMaterial map={hatPegTex} polygonOffset polygonOffsetFactor={-1} />
+        {frontDoorAsset ? (
+          <Billboard follow>
+            <mesh position={[0, 2.48 / 2, 0]}>
+              <planeGeometry args={[2.48 * frontDoorAsset.aspect, 2.48]} />
+              <meshBasicMaterial
+                key={frontDoorAsset.texture.uuid}
+                map={frontDoorAsset.texture}
+                alphaTest={0.45}
+                depthWrite={true}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </Billboard>
+        ) : (
+          <mesh position={[0, 1.0, 0]} castShadow>
+            <boxGeometry args={[2.1, 2.0, 0.14]} />
+            <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
+          </mesh>
+        )}
+        {welcomeMatTex ? (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, -0.58]}>
+            <planeGeometry args={[1.65, 0.85]} />
+            <meshBasicMaterial map={welcomeMatTex} polygonOffset polygonOffsetFactor={-1} />
           </mesh>
         ) : null}
-        <mesh position={[0, 0.45, 0.72]} castShadow receiveShadow>
-          <boxGeometry args={[1.9, 0.85, 0.75]} />
-          <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[-0.45, 0.94, 0.72]} castShadow>
-          <boxGeometry args={[0.58, 0.14, 0.48]} />
-          <meshToonMaterial color="#dc2626" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0.45, 0.94, 0.72]} castShadow>
-          <boxGeometry args={[0.58, 0.14, 0.48]} />
-          <meshToonMaterial color="#f8fafc" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
+      </group>
+
+      {/* ================= ZONE 2: APPAREL RACKS & V (LEFT / BACK-LEFT) ================= */}
+      <ApparelRack3D
+        position={[-5.25, 0.12, -1.45]}
+        label="Shop Humor Rack (6)"
+        onClick={() => openApparel('rack_1_humor')}
+      />
+      <ApparelRack3D
+        position={[-5.25, 0.12, 1.35]}
+        label="Definition Rack (10)"
+        onClick={() => openApparel('rack_2_definition')}
+      />
+
+      {/* Hand-Inked Hat Pegboard Wall + Talkin Braap Sticker Table (Sheet 06) */}
+      <group
+        onClick={(e) => {
+          e.stopPropagation();
+          openApparel('wall_braap');
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHatZoneHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          setHatZoneHovered(false);
+          document.body.style.cursor = 'auto';
+        }}
+      >
+        <group position={[-5.75, 2.38, -3.72]}>
+          {hatPegAsset ? (
+            <Billboard follow>
+              <mesh>
+                <planeGeometry args={[1.76 * hatPegAsset.aspect, 1.76]} />
+                <meshBasicMaterial
+                  key={hatPegAsset.texture.uuid}
+                  map={hatPegAsset.texture}
+                  alphaTest={0.5}
+                  depthWrite={true}
+                  color={hatZoneHovered ? '#fef08a' : '#ffffff'}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </Billboard>
+          ) : (
+            <mesh castShadow>
+              <boxGeometry args={[1.6, 1.35, 0.08]} />
+              <meshToonMaterial color="#6b4f32" gradientMap={TOON_GRADIENT_MAP} />
+              <Edges color="#111111" />
+            </mesh>
+          )}
+        </group>
+
+        <group position={[-5.05, 0.12, -3.55]}>
+          {stickerTableAsset ? (
+            <Billboard follow>
+              <mesh position={[0, 1.18 / 2, 0]}>
+                <planeGeometry args={[1.18 * stickerTableAsset.aspect, 1.18]} />
+                <meshBasicMaterial
+                  key={stickerTableAsset.texture.uuid}
+                  map={stickerTableAsset.texture}
+                  alphaTest={0.5}
+                  depthWrite={true}
+                  color={hatZoneHovered ? '#fef08a' : '#ffffff'}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </Billboard>
+          ) : (
+            <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+              <boxGeometry args={[1.5, 0.85, 0.75]} />
+              <meshToonMaterial color="#785a3c" gradientMap={TOON_GRADIENT_MAP} />
+              <Edges color="#111111" />
+            </mesh>
+          )}
+          {hatZoneHovered ? (
+            <Html center position={[0, 1.55, 0]} distanceFactor={14}>
+              <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
+                Hats &amp; Sticker Table
+              </span>
+            </Html>
+          ) : null}
+        </group>
       </group>
 
       {/* V (Locked Indo-Trinidadian Master Character) */}
@@ -1069,7 +1094,7 @@ export function DealershipScene() {
         staffId="v"
         character="v"
         pose="front"
-        position={[-3.7, 0.12, -0.95]}
+        position={[-3.65, 0.12, -0.75]}
         height={2.12}
         label="V"
       />
@@ -1190,79 +1215,73 @@ export function DealershipScene() {
         ) : null}
       </group>
 
+      {/* Hand-Inked Diamond-Plate Service Counter + Cash Register (Sheet 06) */}
       <group
-        position={[-0.45, 0.12, -2.95]}
+        position={[-0.45, 0.12, -2.42]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore.getState().setOpenDrawer('SERVICE_COUNTER');
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
+          setCounterHovered(true);
           document.body.style.cursor = 'pointer';
         }}
         onPointerOut={() => {
+          setCounterHovered(false);
           document.body.style.cursor = 'auto';
         }}
       >
-        {/* Weathered Steel Counter Base */}
-        <mesh position={[0, 0.56, 0.45]} castShadow receiveShadow>
-          <boxGeometry args={[3.1, 1.1, 0.88]} />
-          <meshToonMaterial color="#7b8288" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {counterFrontTex ? (
-          <mesh position={[0, 0.56, 0.905]} raycast={() => null}>
-            <planeGeometry args={[3.04, 1.04]} />
-            <meshBasicMaterial map={counterFrontTex} polygonOffset polygonOffsetFactor={-1} />
+        {counterAsset ? (
+          <Billboard follow>
+            <mesh position={[0, 2.15 / 2, 0]} scale={[-1, 1, 1]}>
+              <planeGeometry args={[2.15 * counterAsset.aspect, 2.15]} />
+              <meshBasicMaterial
+                key={counterAsset.texture.uuid}
+                map={counterAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={counterHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </Billboard>
+        ) : (
+          <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
+            <boxGeometry args={[3.1, 1.1, 0.88]} />
+            <meshToonMaterial color="#7b8288" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
           </mesh>
+        )}
+        {counterHovered ? (
+          <Html center position={[0, 2.35, 0]} distanceFactor={14}>
+            <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
+              Service Counter &amp; Policies
+            </span>
+          </Html>
         ) : null}
-        {/* Counter Top */}
-        <mesh position={[0, 1.14, 0.45]} castShadow>
-          <boxGeometry args={[3.24, 0.1, 0.96]} />
-          <meshToonMaterial color="#cbd5e1" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {/* Vintage Cash Register */}
-        <mesh position={[0.85, 1.4, 0.42]} castShadow>
-          <boxGeometry args={[0.54, 0.42, 0.44]} />
-          <meshToonMaterial color="#d6d3d1" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {/* Diagnostic Clipboard */}
-        <mesh position={[-0.7, 1.22, 0.45]} rotation={[-Math.PI / 2, 0, 0.2]}>
-          <boxGeometry args={[0.42, 0.54, 0.04]} />
-          <meshToonMaterial color="#b45309" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
       </group>
 
-      {/* HERO HARD R CYCLES HANGING SIGN (Suspended Forward From Ceiling Rafters — Zero Wall Overlap) */}
-      <group position={[-0.25, 3.52, -3.72]}>
-        {/* Steel Suspension Drop Rods Up To Rafters */}
-        <mesh position={[-0.85, 0.72, 0]}>
-          <cylinderGeometry args={[0.025, 0.025, 0.45, 6]} />
-          <meshBasicMaterial color="#111111" />
-        </mesh>
-        <mesh position={[0.85, 0.72, 0]}>
-          <cylinderGeometry args={[0.025, 0.025, 0.45, 6]} />
-          <meshBasicMaterial color="#111111" />
-        </mesh>
-        {/* Framed 3D Sign Board */}
-        <mesh castShadow>
-          <boxGeometry args={[2.52, 1.28, 0.12]} />
-          <meshToonMaterial color="#3b2516" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {logoTex ? (
-          <mesh position={[0, 0, 0.072]}>
-            <planeGeometry args={[2.38, 1.16]} />
+      {/* HERO HARD R CYCLES HANGING CHAIN SIGN (Sheet 06) */}
+      <group position={[-0.25, 3.42, -3.72]}>
+        {hangingLogoAsset ? (
+          <mesh>
+            <planeGeometry args={[1.98 * hangingLogoAsset.aspect, 1.98]} />
             <meshBasicMaterial
-              map={logoTex}
-              polygonOffset
-              polygonOffsetFactor={-2}
+              key={hangingLogoAsset.texture.uuid}
+              map={hangingLogoAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              side={THREE.DoubleSide}
             />
           </mesh>
-        ) : null}
+        ) : (
+          <mesh castShadow>
+            <boxGeometry args={[2.52, 1.28, 0.12]} />
+            <meshToonMaterial color="#18181b" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
+          </mesh>
+        )}
       </group>
 
       {/* Non-Overlapping Back & Left Wall Hand-Inked Signs (Sheet 06) */}
@@ -1305,7 +1324,7 @@ export function DealershipScene() {
         character="dick"
         pose="leaning"
         position={[-0.45, 0.12, -3.45]}
-        height={2.05}
+        height={2.08}
         label="Dick"
       />
 
@@ -1314,9 +1333,9 @@ export function DealershipScene() {
       <LiveServiceBay3D bay={liveBays[1]} position={[3.65, 0.12, 0.55]} />
       <LiveServiceBay3D bay={liveBays[2]} position={[3.65, 0.12, 3.1]} />
 
-      {/* Bay Wall Breaker Panel (Clear Right of Roll-Up Door) */}
+      {/* Bay Wall Hand-Inked Breaker Panel (Sheet 06 — Clear Right of Roll-Up Door) */}
       <group
-        position={[6.28, 2.05, -4.45]}
+        position={[6.18, 2.05, -4.25]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore
@@ -1335,23 +1354,26 @@ export function DealershipScene() {
           document.body.style.cursor = 'auto';
         }}
       >
-        <mesh castShadow>
-          <boxGeometry args={[0.72, 1.05, 0.18]} />
-          <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {breakerTex ? (
-          <mesh position={[0, 0, 0.1]}>
-            <planeGeometry args={[0.64, 0.96]} />
-            <meshBasicMaterial
-              map={breakerTex}
-              transparent
-              alphaTest={0.2}
-              polygonOffset
-              polygonOffsetFactor={-1}
-            />
+        {breakerBoxAsset ? (
+          <Billboard follow>
+            <mesh>
+              <planeGeometry args={[1.48 * breakerBoxAsset.aspect, 1.48]} />
+              <meshBasicMaterial
+                key={breakerBoxAsset.texture.uuid}
+                map={breakerBoxAsset.texture}
+                alphaTest={0.45}
+                depthWrite={true}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </Billboard>
+        ) : (
+          <mesh castShadow>
+            <boxGeometry args={[0.72, 1.05, 0.18]} />
+            <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
           </mesh>
-        ) : null}
+        )}
       </group>
 
       {/* Aisle Oil Drum & Safety Stanchion */}

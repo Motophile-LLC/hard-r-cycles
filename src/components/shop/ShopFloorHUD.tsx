@@ -22,6 +22,7 @@ import { FALLBACK_CATALOG } from '@/data/fallbackCatalog';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import { useShopStore } from '@/store/useShopStore';
 import type { ShopProduct, UserProfile } from '@/types/shop';
+import { withSpriteVersion } from '@/utils/spriteVersion';
 
 export function ShopFloorHUD() {
   const hasHydrated = useShopStore((s) => s.hasHydrated);
@@ -197,7 +198,7 @@ export function ShopFloorHUD() {
   if (viewMode !== 'FLOOR') return null;
 
   const activeCount = products.filter((p) => p.active).length || 19;
-  const displayedTechCount = Math.max(2, onlineTechCount + 2);
+  const displayedTechCount = Math.max(3, onlineTechCount + 3);
   const cartCount = hasHydrated
     ? cart.reduce((sum, item) => sum + item.quantity, 0)
     : 0;
@@ -251,7 +252,7 @@ export function ShopFloorHUD() {
             className="flex cursor-pointer items-center gap-1.5 rounded-xl border-3 border-black bg-amber-400 px-2.5 py-1.5 text-[11px] font-black uppercase text-black shadow-[3px_3px_0px_#000] hover:bg-amber-300"
           >
             <Image
-              src="/sprites/ui/icon-cart.png"
+              src={withSpriteVersion('/sprites/ui/icon-cart.png')}
               alt=""
               width={20}
               height={20}
@@ -400,7 +401,7 @@ export function ShopFloorHUD() {
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
             <Image
-              src="/sprites/ui/icon-apparel.png"
+              src={withSpriteVersion('/sprites/ui/icon-apparel.png')}
               alt=""
               width={20}
               height={20}
@@ -416,7 +417,7 @@ export function ShopFloorHUD() {
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
             <Image
-              src="/sprites/ui/icon-parts.png"
+              src={withSpriteVersion('/sprites/ui/icon-parts.png')}
               alt=""
               width={20}
               height={20}
@@ -432,7 +433,7 @@ export function ShopFloorHUD() {
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-zinc-800 px-2.5 py-2 text-[11px] font-black uppercase text-white hover:bg-amber-300 hover:text-black"
           >
             <Image
-              src="/sprites/ui/icon-service.png"
+              src={withSpriteVersion('/sprites/ui/icon-service.png')}
               alt=""
               width={20}
               height={20}
@@ -448,7 +449,7 @@ export function ShopFloorHUD() {
             className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-emerald-400 px-2.5 py-2 text-[11px] font-black uppercase text-black hover:bg-emerald-300"
           >
             <Image
-              src="/sprites/ui/icon-bays.png"
+              src={withSpriteVersion('/sprites/ui/icon-bays.png')}
               alt=""
               width={20}
               height={20}

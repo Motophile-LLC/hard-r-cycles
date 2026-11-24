@@ -1,4 +1,8 @@
 import type { ShopProduct, StaffDialogueState, StaffId } from '@/types/shop';
+import { withSpriteVersion } from '@/utils/spriteVersion';
+
+const portrait = (id: string): string =>
+  withSpriteVersion(`/sprites/portraits/${id}.png`);
 
 const STAFF_META: Record<
   StaffId,
@@ -7,17 +11,17 @@ const STAFF_META: Record<
   v: {
     name: 'V',
     role: 'Apparel & Merch Boss',
-    defaultPortrait: '/sprites/portraits/v-smirk.png',
+    defaultPortrait: portrait('v-smirk'),
   },
   dick: {
     name: 'Dick',
     role: 'Owner & Master Mechanic',
-    defaultPortrait: '/sprites/portraits/dick-glaring.png',
+    defaultPortrait: portrait('dick-glaring'),
   },
   scooter: {
     name: 'Scooter',
     role: 'Shop Apprentice',
-    defaultPortrait: '/sprites/portraits/scooter-pop.png',
+    defaultPortrait: portrait('scooter-pop'),
   },
 };
 
@@ -141,10 +145,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'v'
-          ? '/sprites/portraits/v-smirk.png'
+          ? portrait('v-smirk')
           : staffId === 'dick'
-            ? '/sprites/portraits/dick-stoked.png'
-            : '/sprites/portraits/scooter-hyped.png',
+            ? portrait('dick-stoked')
+            : portrait('scooter-hyped'),
       moodLabel: 'SHIFT REWARDS',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -164,7 +168,7 @@ export function resolveStaffReply(
     if (staffId === 'v') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/v-smirk.png',
+        portraitId: portrait('v-smirk'),
         moodLabel: 'BUY IT.',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -177,7 +181,7 @@ export function resolveStaffReply(
     if (staffId === 'dick') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/dick-smartass.png',
+        portraitId: portrait('dick-smartass'),
         moodLabel: 'STRAIGHT TALK',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -189,7 +193,7 @@ export function resolveStaffReply(
     }
     return {
       staffId,
-      portraitId: '/sprites/portraits/scooter-clueless.png',
+      portraitId: portrait('scooter-clueless'),
       moodLabel: 'CLUELESS',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -206,10 +210,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'v'
-          ? '/sprites/portraits/v-eyeroll.png'
+          ? portrait('v-eyeroll')
           : staffId === 'dick'
-            ? '/sprites/portraits/dick-furious.png'
-            : '/sprites/portraits/scooter-duh.png',
+            ? portrait('dick-furious')
+            : portrait('scooter-duh'),
       moodLabel: staffId === 'dick' ? 'READ THE SIGN!' : 'STORE POLICY',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -230,10 +234,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'dick'
-          ? '/sprites/portraits/dick-eyeroll.png'
+          ? portrait('dick-eyeroll')
           : staffId === 'v'
-            ? '/sprites/portraits/v-eyeroll.png'
-            : '/sprites/portraits/scooter-whoa.png',
+            ? portrait('v-eyeroll')
+            : portrait('scooter-whoa'),
       moodLabel: 'SERVICE COUNTER',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -254,10 +258,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'v'
-          ? '/sprites/portraits/v-smirk.png'
+          ? portrait('v-smirk')
           : staffId === 'dick'
-            ? '/sprites/portraits/dick-smartass.png'
-            : '/sprites/portraits/scooter-hyped.png',
+            ? portrait('dick-smartass')
+            : portrait('scooter-hyped'),
       moodLabel: 'SERVICE BAYS LIVE',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -277,7 +281,7 @@ export function resolveStaffReply(
     if (staffId === 'v') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/v-eyeroll.png',
+        portraitId: portrait('v-eyeroll'),
         moodLabel: 'REALLY, DICK?!',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -290,7 +294,7 @@ export function resolveStaffReply(
     if (staffId === 'scooter') {
       return {
         staffId,
-        portraitId: '/sprites/portraits/scooter-busted.png',
+        portraitId: portrait('scooter-busted'),
         moodLabel: 'OOPS...',
         speakerName: meta.name,
         speakerRole: meta.role,
@@ -302,7 +306,7 @@ export function resolveStaffReply(
     }
     return {
       staffId,
-      portraitId: '/sprites/portraits/dick-wtf.png',
+      portraitId: portrait('dick-wtf'),
       moodLabel: 'WTF?!',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -319,10 +323,10 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'v'
-          ? '/sprites/portraits/v-smirk.png'
+          ? portrait('v-smirk')
           : staffId === 'dick'
-            ? '/sprites/portraits/dick-smartass.png'
-            : '/sprites/portraits/scooter-hyped.png',
+            ? portrait('dick-smartass')
+            : portrait('scooter-hyped'),
       moodLabel: staffId === 'v' ? 'BUY IT.' : 'FOUND ON RACK',
       speakerName: meta.name,
       speakerRole: meta.role,
@@ -340,17 +344,17 @@ export function resolveStaffReply(
   // 7. Zero-API in-character deflect for random / unmatched text
   const deflects: Record<StaffId, { portrait: string; mood: string; line: string }> = {
     v: {
-      portrait: '/sprites/portraits/v-eyeroll.png',
+      portrait: portrait('v-eyeroll'),
       mood: 'NICE TRY',
       line: 'Honey, I sell shop gear and keep Dick out of jail. Try asking about tees, hoodies, sizing, or pick a topic below.',
     },
     dick: {
-      portrait: '/sprites/portraits/dick-wtf.png',
+      portrait: portrait('dick-wtf'),
       mood: 'WTF?!',
       line: 'Do I look like Google? Ask about merch, sizing, shop rules, or go clock into a Service Bay before I charge you $200/hr for loitering!',
     },
     scooter: {
-      portrait: '/sprites/portraits/scooter-duh.png',
+      portrait: portrait('scooter-duh'),
       mood: 'DUH...',
       line: '*POP!* Uhhh... Dick told me not to answer stuff I don’t know. Wanna see the Shop Humor shirts or play Flat Rate Panic?',
     },

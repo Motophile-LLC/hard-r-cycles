@@ -38,10 +38,10 @@ const NPC_PRESETS: LiveBayOccupant[] = [
   {
     bayIndex: 3,
     isRealPlayer: false,
-    playerName: 'OPEN BAY',
+    playerName: "NPC: Wrenchin' Walt",
     bikeSprite: 'club-dyna',
-    activity: 'IDLE',
-    statusText: 'Click lift to clock in!',
+    activity: 'CHAOS_SMOKE',
+    statusText: 'Club Dyna • Exhaust Stud',
     updatedAt: 0,
   },
 ];
@@ -50,6 +50,7 @@ const NPC_ACTIVITIES: { activity: BayActivityState; status: string }[] = [
   { activity: 'WRENCHING', status: 'Wrenching on V-Twin' },
   { activity: 'SPARKS', status: 'Chasing wiring short' },
   { activity: 'CHAOS_SMOKE', status: 'Torching seized stud' },
+  { activity: 'BREAKER_BLOWN', status: 'Tripped main breaker!' },
   { activity: 'JOB_DONE', status: 'Flagged flat-rate hrs!' },
 ];
 
@@ -85,7 +86,11 @@ export function useLiveBayPresence() {
         activity: NPC_ACTIVITIES[(npcCycleRef.current + 1) % NPC_ACTIVITIES.length].activity,
         statusText: NPC_ACTIVITIES[(npcCycleRef.current + 1) % NPC_ACTIVITIES.length].status,
       },
-      { ...NPC_PRESETS[2] },
+      {
+        ...NPC_PRESETS[2],
+        activity: NPC_ACTIVITIES[(npcCycleRef.current + 2) % NPC_ACTIVITIES.length].activity,
+        statusText: NPC_ACTIVITIES[(npcCycleRef.current + 2) % NPC_ACTIVITIES.length].status,
+      },
     ];
 
     const occupied = new Set<number>();
