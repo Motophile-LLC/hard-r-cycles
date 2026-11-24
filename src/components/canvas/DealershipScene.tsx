@@ -18,10 +18,7 @@ import { SafeHtml as Html } from './SafeHtml';
 import {
   getComicSignPlaqueTexture,
   getGarageWallTexture,
-  getPartsPegboardTexture,
-  getRollupBayDoorTexture,
   getShopFloorTexture,
-  getToolChestFrontTexture,
 } from '@/utils/dealershipTextures';
 import {
   TOON_GRADIENT_MAP,
@@ -36,11 +33,11 @@ const CAMERA_PRESETS: Record<
   CameraFocusZone,
   { pos: [number, number, number]; look: [number, number, number] }
 > = {
-  OVERVIEW: { pos: [7.4, 9.2, 10.6], look: [-0.2, 0.8, 0.1] },
-  APPAREL: { pos: [-0.2, 5.2, 5.4], look: [-4.2, 1.3, -1.2] },
-  PARTS: { pos: [1.6, 4.9, 6.8], look: [-2.2, 1.0, 1.4] },
-  SERVICE: { pos: [3.2, 4.9, 3.8], look: [-0.6, 1.5, -3.1] },
-  BAYS: { pos: [7.4, 6.2, 6.8], look: [2.8, 1.1, 0.4] },
+  OVERVIEW: { pos: [8.6, 10.4, 12.4], look: [-0.2, 0.65, 0.25] },
+  APPAREL: { pos: [-0.9, 3.25, 3.6], look: [-4.9, 1.32, -0.8] },
+  PARTS: { pos: [1.3, 3.15, 5.5], look: [-2.2, 1.1, 1.7] },
+  SERVICE: { pos: [0.65, 3.05, 1.55], look: [-0.45, 1.38, -3.2] },
+  BAYS: { pos: [8.4, 5.6, 6.4], look: [4.0, 1.1, 0.35] },
 };
 
 function DealershipCameraRig() {
@@ -54,17 +51,33 @@ function DealershipCameraRig() {
     const preset = CAMERA_PRESETS[focus] ?? CAMERA_PRESETS.OVERVIEW;
     const aspect = state.size.width / Math.max(1, state.size.height);
     const persp = state.camera as THREE.PerspectiveCamera;
+    const isPortrait = aspect < 0.9;
 
-    // Pull back gracefully on narrow portrait phones so the whole cutaway fits
-    const portraitBoost = aspect < 0.9 ? THREE.MathUtils.clamp((0.95 - aspect) * 1.15, 0, 0.52) : 0;
-    const targetFov = focus === 'OVERVIEW' ? (aspect < 0.9 ? 42 : 34) : 36;
+    // Pull back cleanly on narrow portrait phones; keep zoomed staff eye-level & unobstructed
+    const overviewBoost =
+      focus === 'OVERVIEW' && isPortrait
+        ? THREE.MathUtils.clamp((0.95 - aspect) * 1.4, 0, 0.68)
+        : 0;
+    const focusHorizontalPull =
+      focus !== 'OVERVIEW' && isPortrait
+        ? THREE.MathUtils.clamp((0.95 - aspect) * 0.45, 0, 0.28)
+        : 0;
+    const targetFov =
+      focus === 'OVERVIEW' ? (isPortrait ? 44 : 34) : isPortrait ? 40 : 35;
 
-    const baseX = preset.pos[0] * (1 + portraitBoost * 0.48);
-    const baseY = preset.pos[1] * (1 + portraitBoost * 0.42);
-    const baseZ = preset.pos[2] * (1 + portraitBoost * 0.56);
+    const baseX =
+      preset.pos[0] +
+      (preset.pos[0] - preset.look[0]) * (overviewBoost * 0.48 + focusHorizontalPull);
+    const baseY =
+      preset.pos[1] + (preset.pos[1] - preset.look[1]) * (overviewBoost * 0.42);
+    const baseZ =
+      preset.pos[2] +
+      (preset.pos[2] - preset.look[2]) * (overviewBoost * 0.56 + focusHorizontalPull);
 
     const lx = preset.look[0];
-    const ly = preset.look[1];
+    const ly =
+      preset.look[1] -
+      (isPortrait && storeState.activeDialogue && focus !== 'OVERVIEW' ? 0.35 : 0);
     const lz = preset.look[2];
 
     // Clamped Sims-style orbit & zoom offsets around focus point
@@ -77,7 +90,7 @@ function DealershipCameraRig() {
     const sinY = Math.sin(yaw);
 
     const tx = lx + dx * cosY - dz * sinY;
-    const ty = Math.max(2.6, ly + dy);
+    const ty = Math.max(2.35, ly + dy);
     const tz = lz + dx * sinY + dz * cosY;
 
     const step = Math.min(1, delta * 5.2);
@@ -359,8 +372,8 @@ function ApparelRack3D({
 }) {
   const [hovered, setHovered] = useState(false);
   const rackAsset = usePropSpriteTexture('prop-apparel-rack');
-  const rackHeight = 2.32;
-  const rackWidth = rackAsset ? rackHeight * rackAsset.aspect : 2.02;
+  const rackHeight = 2.18;
+  const rackWidth = rackAsset ? rackHeight * rackAsset.aspect : 1.9;
 
   return (
     <group
@@ -482,9 +495,9 @@ function LiveServiceBay3D({
     }
   });
 
-  const bikeH = 1.88;
-  const bikeW = bikeAsset ? bikeH * bikeAsset.aspect : 2.35;
-  const techH = 1.72;
+  const bikeH = 1.68;
+  const bikeW = bikeAsset ? bikeH * bikeAsset.aspect : 2.15;
+  const techH = 1.56;
   const techW = techH * techAspect;
 
   return (
@@ -677,14 +690,14 @@ function LiveServiceBay3D({
       ) : null}
 
       {/* Floating Bay Status Badge */}
-      <Html center position={[0, 2.55, 0]} distanceFactor={14}>
+      <Html center position={[0, 2.32, 0]} distanceFactor={11.5}>
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             useShopStore.getState().enterGameBay(bay.bayIndex);
           }}
-          className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_#000] transition-transform hover:scale-105 ${
+          className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-lg border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase shadow-[2px_2px_0px_#000] transition-transform hover:scale-105 ${
             bay.isRealPlayer
               ? 'bg-emerald-300 text-black'
               : bay.activity === 'IDLE' || bay.bayIndex === 3
@@ -693,7 +706,7 @@ function LiveServiceBay3D({
           }`}
         >
           <span
-            className={`inline-block h-2 w-2 rounded-full ${
+            className={`inline-block h-1.5 w-1.5 rounded-full ${
               bay.activity === 'IDLE'
                 ? 'bg-amber-600'
                 : bay.activity === 'BREAKER_BLOWN'
@@ -704,11 +717,15 @@ function LiveServiceBay3D({
           <span>
             {bay.isRealPlayer
               ? `LIVE: ${bay.playerName}`
-              : bay.activity === 'IDLE'
+              : bay.activity === 'IDLE' || bay.bayIndex === 3
                 ? `BAY ${bay.bayIndex} • PLAY`
-                : bay.bayIndex === 3
-                  ? `BAY 3 • PLAY (${bay.playerName.replace('NPC: ', '')})`
-                  : `BAY ${bay.bayIndex} • ${bay.playerName}`}
+                : `BAY ${bay.bayIndex} • ${
+                    bay.bayIndex === 1
+                      ? 'DALE'
+                      : bay.bayIndex === 2
+                        ? 'JOHNNY'
+                        : bay.playerName.replace('NPC: ', '')
+                  }`}
           </span>
         </button>
       </Html>
@@ -755,6 +772,7 @@ export function DealershipScene() {
   const isTouch = useCoarsePointer();
   const liveBays = useShopStore((s) => s.liveBays);
   const [hatZoneHovered, setHatZoneHovered] = useState(false);
+  const [partsZoneHovered, setPartsZoneHovered] = useState(false);
   const [counterHovered, setCounterHovered] = useState(false);
 
   const hangingLogoAsset = usePropSpriteTexture('prop-hanging-logo');
@@ -763,6 +781,12 @@ export function DealershipScene() {
   const counterAsset = usePropSpriteTexture('prop-service-counter');
   const frontDoorAsset = usePropSpriteTexture('prop-front-door');
   const breakerBoxAsset = usePropSpriteTexture('prop-breaker-box');
+  const rollupDoorAsset = usePropSpriteTexture('prop-rollup-door');
+  const partsShelfAsset = usePropSpriteTexture('prop-parts-shelf');
+  const backPartsRackAsset = usePropSpriteTexture('prop-back-parts-rack');
+  const toolChestAsset = usePropSpriteTexture('prop-tool-chest');
+  const tireStackAsset = usePropSpriteTexture('prop-tire-stack');
+  const oilDrumAsset = usePropSpriteTexture('prop-oil-drum-cone');
 
   const signNoRefundsTex = useShopBackgroundTexture('/sprites/props/signs/sign-no-refunds.png');
   const signCashOnlyTex = useShopBackgroundTexture('/sprites/props/signs/sign-cash-only.png');
@@ -773,9 +797,6 @@ export function DealershipScene() {
   const shopFloorTex = useMemo(() => getShopFloorTexture(), []);
   const wallLeftTex = useMemo(() => getGarageWallTexture('left'), []);
   const wallBackTex = useMemo(() => getGarageWallTexture('back'), []);
-  const partsPegTex = useMemo(() => getPartsPegboardTexture(), []);
-  const rollupDoorTex = useMemo(() => getRollupBayDoorTexture(), []);
-  const toolChestTex = useMemo(() => getToolChestFrontTexture(), []);
 
   const welcomeMatTex = useMemo(
     () =>
@@ -793,13 +814,22 @@ export function DealershipScene() {
     useShopStore.getState().setOpenDrawer('APPAREL', filter);
   };
 
+  const resetFloorOverview = () => {
+    const store = useShopStore.getState();
+    if (store.activeDialogue) {
+      store.setActiveDialogue(null);
+    } else if (store.cameraFocus !== 'OVERVIEW') {
+      store.setCameraFocus('OVERVIEW');
+    }
+  };
+
   return (
     <>
       <color attach="background" args={['#1a2026']} />
       <DealershipCameraRig />
 
       {/* Warm tungsten comic-garage lighting */}
-      <ambientLight intensity={0.88} color="#fff7ed" />
+      <ambientLight intensity={0.92} color="#fff7ed" />
       <directionalLight
         position={[7, 12, 8]}
         intensity={1.95}
@@ -807,34 +837,34 @@ export function DealershipScene() {
         castShadow
         shadow-mapSize={isTouch ? [1024, 1024] : [2048, 2048]}
         shadow-camera-near={1}
-        shadow-camera-far={30}
-        shadow-camera-left={-9}
-        shadow-camera-right={9}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
+        shadow-camera-far={32}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={9}
+        shadow-camera-bottom={-9}
         shadow-bias={-0.0005}
       />
-      <pointLight position={[-4.2, 3.3, -1.2]} intensity={1.7} distance={9} color="#fde68a" />
-      <pointLight position={[-0.5, 3.3, -2.5]} intensity={1.8} distance={9} color="#fde68a" />
-      <pointLight position={[3.6, 3.4, 0.4]} intensity={1.9} distance={10} color="#fef3c7" />
+      <pointLight position={[-4.8, 3.3, -1.4]} intensity={1.7} distance={10} color="#fde68a" />
+      <pointLight position={[-0.45, 3.3, -2.8]} intensity={1.8} distance={10} color="#fde68a" />
+      <pointLight position={[4.35, 3.4, 0.35]} intensity={1.9} distance={11} color="#fef3c7" />
 
-      {/* Base Cutaway Slab + Split Wood-to-Cracked-Concrete Floor */}
+      {/* Base Cutaway Slab (15.2 x 10.6) + Split Wood-to-Cracked-Concrete Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, 0]}
         receiveShadow
         onClick={(e) => {
           e.stopPropagation();
-          useShopStore.getState().setCameraFocus('OVERVIEW');
+          resetFloorOverview();
         }}
       >
-        <boxGeometry args={[13.6, 9.6, 0.24]} />
+        <boxGeometry args={[15.2, 10.6, 0.24]} />
         <meshToonMaterial color="#57534e" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {shopFloorTex ? (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.126, 0]} raycast={() => null}>
-          <planeGeometry args={[13.52, 9.52]} />
+          <planeGeometry args={[15.12, 10.52]} />
           <meshBasicMaterial
             map={shopFloorTex}
             polygonOffset
@@ -843,20 +873,28 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Cutaway Left Wall (x = -6.7) — Plaster + Olive Wainscoting */}
-      <mesh position={[-6.7, 2.15, 0]} receiveShadow castShadow>
-        <boxGeometry args={[0.28, 4.3, 9.6]} />
+      {/* Cutaway Left Wall (x = -7.5) — Plaster + Olive Wainscoting */}
+      <mesh
+        position={[-7.5, 2.15, 0]}
+        receiveShadow
+        castShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          resetFloorOverview();
+        }}
+      >
+        <boxGeometry args={[0.28, 4.3, 10.6]} />
         <meshToonMaterial color="#6e7463" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[-6.7, 4.34, 0]} castShadow>
-        <boxGeometry args={[0.38, 0.14, 9.72]} />
+      <mesh position={[-7.5, 4.34, 0]} castShadow raycast={() => null}>
+        <boxGeometry args={[0.38, 0.14, 10.72]} />
         <meshToonMaterial color="#262729" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {wallLeftTex ? (
-        <mesh position={[-6.54, 2.15, 0]} rotation={[0, Math.PI / 2, 0]} raycast={() => null}>
-          <planeGeometry args={[9.5, 4.22]} />
+        <mesh position={[-7.34, 2.15, 0]} rotation={[0, Math.PI / 2, 0]} raycast={() => null}>
+          <planeGeometry args={[10.5, 4.22]} />
           <meshBasicMaterial
             map={wallLeftTex}
             polygonOffset
@@ -865,20 +903,28 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Cutaway Back Wall (z = -4.7) — Plaster + Olive Wainscoting */}
-      <mesh position={[0, 2.15, -4.7]} receiveShadow castShadow>
-        <boxGeometry args={[13.6, 4.3, 0.28]} />
+      {/* Cutaway Back Wall (z = -5.2) — Plaster + Olive Wainscoting */}
+      <mesh
+        position={[0, 2.15, -5.2]}
+        receiveShadow
+        castShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          resetFloorOverview();
+        }}
+      >
+        <boxGeometry args={[15.2, 4.3, 0.28]} />
         <meshToonMaterial color="#6e7463" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[0, 4.34, -4.7]} castShadow>
-        <boxGeometry args={[13.72, 0.14, 0.38]} />
+      <mesh position={[0, 4.34, -5.2]} castShadow raycast={() => null}>
+        <boxGeometry args={[15.32, 0.14, 0.38]} />
         <meshToonMaterial color="#262729" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {wallBackTex ? (
-        <mesh position={[0, 2.15, -4.54]} raycast={() => null}>
-          <planeGeometry args={[13.5, 4.22]} />
+        <mesh position={[0, 2.15, -5.04]} raycast={() => null}>
+          <planeGeometry args={[15.1, 4.22]} />
           <meshBasicMaterial
             map={wallBackTex}
             polygonOffset
@@ -887,70 +933,60 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Corrugated Roll-Up Service Bay Door (Right Side of Back Wall) */}
-      <group position={[4.02, 1.92, -4.5]}>
-        <mesh receiveShadow>
-          <boxGeometry args={[3.85, 3.45, 0.12]} />
-          <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {rollupDoorTex ? (
-          <mesh position={[0, 0, 0.075]} raycast={() => null}>
-            <planeGeometry args={[3.62, 3.22]} />
+      {/* Hand-Inked Corrugated Roll-Up Service Bay Door (Sheet 08, Flush on Back Wall) */}
+      <group position={[4.55, 1.92, -4.96]}>
+        {rollupDoorAsset ? (
+          <mesh>
+            <planeGeometry args={[3.32 * rollupDoorAsset.aspect, 3.32]} />
             <meshBasicMaterial
-              map={rollupDoorTex}
-              polygonOffset
-              polygonOffsetFactor={-1}
+              key={rollupDoorAsset.texture.uuid}
+              map={rollupDoorAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              side={THREE.DoubleSide}
             />
           </mesh>
-        ) : null}
+        ) : (
+          <mesh receiveShadow>
+            <boxGeometry args={[3.85, 3.45, 0.12]} />
+            <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
+          </mesh>
+        )}
       </group>
 
-      {/* Dark Timber Perimeter Beams & Service Bay Roof Rafters */}
-      <mesh position={[0, 4.18, -4.46]} castShadow>
-        <boxGeometry args={[13.4, 0.18, 0.2]} />
+      {/* Flush Wall Perimeter Timber Beams (Unobstructed View — Zero Mid-Air Crossbeams Over Counter) */}
+      <mesh position={[0, 4.18, -4.96]} castShadow raycast={() => null}>
+        <boxGeometry args={[15.0, 0.18, 0.2]} />
         <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[-6.46, 4.18, 0]} castShadow>
-        <boxGeometry args={[0.2, 0.18, 9.4]} />
-        <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
-        <Edges color="#111111" />
-      </mesh>
-      {[-1.1, 0.85, 2.75, 4.65, 6.35].map((rx) => (
-        <mesh key={rx} position={[rx, 4.18, -1.9]} castShadow>
-          <boxGeometry args={[0.2, 0.22, 5.1]} />
-          <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-      ))}
-      <mesh position={[2.6, 4.18, 0.5]} castShadow>
-        <boxGeometry args={[7.8, 0.18, 0.2]} />
+      <mesh position={[-7.26, 4.18, 0]} castShadow raycast={() => null}>
+        <boxGeometry args={[0.2, 0.18, 10.4]} />
         <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
 
-      {/* Warm Hanging Edison Bulbs Across Floor & Bays */}
+      {/* Wall-Mounted Warm Edison Bulbs (Clear of Staff Line-of-Sight) */}
       {(
         [
-          [-4.4, 3.62, -1.3],
-          [-0.45, 3.65, -2.5],
-          [3.65, 3.7, -2.1],
-          [3.65, 3.7, 0.55],
-          [3.65, 3.7, 3.1],
+          [-7.12, 3.85, -1.6],
+          [-7.12, 3.85, 1.5],
+          [-0.45, 3.88, -4.82],
+          [4.55, 3.88, -4.82],
         ] as [number, number, number][]
       ).map(([lx, ly, lz], i) => (
-        <group key={`bulb-${i}`} position={[lx, ly, lz]}>
-          <mesh position={[0, 0.32, 0]}>
-            <cylinderGeometry args={[0.02, 0.02, 0.65, 6]} />
+        <group key={`bulb-${i}`} position={[lx, ly, lz]} raycast={() => null}>
+          <mesh position={[0, 0.16, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.28, 6]} />
             <meshBasicMaterial color="#111111" />
           </mesh>
           <mesh position={[0, 0.02, 0]}>
-            <cylinderGeometry args={[0.06, 0.08, 0.1, 8]} />
+            <cylinderGeometry args={[0.055, 0.075, 0.09, 8]} />
             <meshToonMaterial color="#27272a" gradientMap={TOON_GRADIENT_MAP} />
           </mesh>
-          <mesh position={[0, -0.09, 0]}>
-            <sphereGeometry args={[0.11, 10, 10]} />
+          <mesh position={[0, -0.08, 0]}>
+            <sphereGeometry args={[0.1, 10, 10]} />
             <meshBasicMaterial color="#fef08a" />
           </mesh>
         </group>
@@ -958,7 +994,7 @@ export function DealershipScene() {
 
       {/* ================= ZONE 1: FRONT ENTRY DOOR (BOTTOM-LEFT CUTAWAY) ================= */}
       <group
-        position={[-4.4, 0.12, 4.45]}
+        position={[-5.1, 0.12, 4.92]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore
@@ -979,8 +1015,8 @@ export function DealershipScene() {
       >
         {frontDoorAsset ? (
           <Billboard follow>
-            <mesh position={[0, 2.48 / 2, 0]}>
-              <planeGeometry args={[2.48 * frontDoorAsset.aspect, 2.48]} />
+            <mesh position={[0, 2.32 / 2, 0]}>
+              <planeGeometry args={[2.32 * frontDoorAsset.aspect, 2.32]} />
               <meshBasicMaterial
                 key={frontDoorAsset.texture.uuid}
                 map={frontDoorAsset.texture}
@@ -1007,12 +1043,12 @@ export function DealershipScene() {
 
       {/* ================= ZONE 2: APPAREL RACKS & V (LEFT / BACK-LEFT) ================= */}
       <ApparelRack3D
-        position={[-5.25, 0.12, -1.45]}
+        position={[-6.05, 0.12, -1.65]}
         label="Shop Humor Rack (6)"
         onClick={() => openApparel('rack_1_humor')}
       />
       <ApparelRack3D
-        position={[-5.25, 0.12, 1.35]}
+        position={[-6.05, 0.12, 1.45]}
         label="Definition Rack (10)"
         onClick={() => openApparel('rack_2_definition')}
       />
@@ -1033,11 +1069,11 @@ export function DealershipScene() {
           document.body.style.cursor = 'auto';
         }}
       >
-        <group position={[-5.75, 2.38, -3.72]}>
+        <group position={[-6.35, 2.42, -4.15]}>
           {hatPegAsset ? (
             <Billboard follow>
               <mesh>
-                <planeGeometry args={[1.76 * hatPegAsset.aspect, 1.76]} />
+                <planeGeometry args={[1.68 * hatPegAsset.aspect, 1.68]} />
                 <meshBasicMaterial
                   key={hatPegAsset.texture.uuid}
                   map={hatPegAsset.texture}
@@ -1057,11 +1093,11 @@ export function DealershipScene() {
           )}
         </group>
 
-        <group position={[-5.05, 0.12, -3.55]}>
+        <group position={[-5.55, 0.12, -3.9]}>
           {stickerTableAsset ? (
             <Billboard follow>
-              <mesh position={[0, 1.18 / 2, 0]}>
-                <planeGeometry args={[1.18 * stickerTableAsset.aspect, 1.18]} />
+              <mesh position={[0, 1.12 / 2, 0]}>
+                <planeGeometry args={[1.12 * stickerTableAsset.aspect, 1.12]} />
                 <meshBasicMaterial
                   key={stickerTableAsset.texture.uuid}
                   map={stickerTableAsset.texture}
@@ -1080,7 +1116,7 @@ export function DealershipScene() {
             </mesh>
           )}
           {hatZoneHovered ? (
-            <Html center position={[0, 1.55, 0]} distanceFactor={14}>
+            <Html center position={[0, 1.48, 0]} distanceFactor={13}>
               <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
                 Hats &amp; Sticker Table
               </span>
@@ -1094,98 +1130,103 @@ export function DealershipScene() {
         staffId="v"
         character="v"
         pose="front"
-        position={[-3.65, 0.12, -0.75]}
-        height={2.12}
+        position={[-4.15, 0.12, -0.55]}
+        height={2.02}
         label="V"
       />
 
-      {/* ================= ZONE 3: PARTS SHELVING, TOOL CHEST & SCOOTER ================= */}
+      {/* ================= ZONE 3: PARTS SHELVING, TOOL CHEST, TIRES & SCOOTER (Sheet 08) ================= */}
       <group
-        position={[-2.25, 0.12, 1.95]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore.getState().setOpenDrawer('PARTS');
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
+          setPartsZoneHovered(true);
           document.body.style.cursor = 'pointer';
         }}
         onPointerOut={() => {
+          setPartsZoneHovered(false);
           document.body.style.cursor = 'auto';
         }}
       >
-        {/* 4-Post Open Industrial Parts Rack */}
-        {[
-          [-0.78, -0.28],
-          [0.78, -0.28],
-          [-0.78, 0.28],
-          [0.78, 0.28],
-        ].map(([px, pz], i) => (
-          <mesh key={`post-${i}`} position={[px, 0.95, pz]} castShadow>
-            <boxGeometry args={[0.07, 1.9, 0.07]} />
-            <meshToonMaterial color="#334155" gradientMap={TOON_GRADIENT_MAP} />
-          </mesh>
-        ))}
-        {[0.2, 0.78, 1.34, 1.85].map((sy, sIdx) => (
-          <mesh key={`shelf-${sIdx}`} position={[0, sy, 0]} castShadow receiveShadow>
-            <boxGeometry args={[1.64, 0.06, 0.62]} />
-            <meshToonMaterial color="#64748b" gradientMap={TOON_GRADIENT_MAP} />
-            <Edges color="#111111" />
-          </mesh>
-        ))}
-        {/* Top shelf oil jugs */}
-        {[-0.55, -0.22, 0.12, 0.45].map((ox, i) => (
-          <mesh key={`jug-${ox}`} position={[ox, 2.04, 0]} castShadow>
-            <boxGeometry args={[0.2, 0.34, 0.22]} />
-            <meshToonMaterial
-              color={i % 2 === 0 ? '#f59e0b' : '#dc2626'}
-              gradientMap={TOON_GRADIENT_MAP}
-            />
-            <Edges color="#111111" />
-          </mesh>
-        ))}
-        {/* Middle shelf taped cardboard parts boxes */}
-        <mesh position={[-0.36, 1.54, 0]} castShadow>
-          <boxGeometry args={[0.62, 0.34, 0.44]} />
-          <meshToonMaterial color="#b48a5a" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0.38, 1.52, 0]} castShadow>
-          <boxGeometry args={[0.56, 0.3, 0.42]} />
-          <meshToonMaterial color="#9a7248" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {/* Lower shelf metal parts crates */}
-        <mesh position={[-0.32, 0.96, 0]} castShadow>
-          <boxGeometry args={[0.64, 0.3, 0.44]} />
-          <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0.38, 0.95, 0]} castShadow>
-          <boxGeometry args={[0.56, 0.28, 0.42]} />
-          <meshToonMaterial color="#a16207" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {/* Stacked Tires */}
-        {[0.16, 0.42, 0.68].map((ty) => (
-          <mesh key={ty} position={[1.25, ty, 0.05]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <torusGeometry args={[0.32, 0.13, 10, 20]} />
-            <meshToonMaterial color="#18181b" gradientMap={TOON_GRADIENT_MAP} />
-          </mesh>
-        ))}
-        {/* Classic 6-Drawer Red Tool Chest */}
-        <group position={[-1.28, 0.56, 0.15]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.92, 1.1, 0.58]} />
-            <meshToonMaterial color="#c82828" gradientMap={TOON_GRADIENT_MAP} />
-            <Edges color="#111111" />
-          </mesh>
-          {toolChestTex ? (
-            <mesh position={[0, 0, 0.3]} raycast={() => null}>
-              <planeGeometry args={[0.86, 1.04]} />
-              <meshBasicMaterial map={toolChestTex} polygonOffset polygonOffsetFactor={-1} />
+        <group position={[-2.55, 0.12, 2.25]}>
+          {partsShelfAsset ? (
+            <Billboard follow>
+              <mesh position={[0, 2.18 / 2, 0]}>
+                <planeGeometry args={[2.18 * partsShelfAsset.aspect, 2.18]} />
+                <meshBasicMaterial
+                  key={partsShelfAsset.texture.uuid}
+                  map={partsShelfAsset.texture}
+                  alphaTest={0.5}
+                  depthWrite={true}
+                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </Billboard>
+          ) : (
+            <mesh position={[0, 0.95, 0]} castShadow receiveShadow>
+              <boxGeometry args={[1.64, 1.9, 0.62]} />
+              <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
+              <Edges color="#111111" />
             </mesh>
+          )}
+          {partsZoneHovered ? (
+            <Html center position={[0, 2.42, 0]} distanceFactor={13}>
+              <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
+                Parts &amp; Oil Rack
+              </span>
+            </Html>
           ) : null}
+        </group>
+
+        <group position={[-4.05, 0.12, 2.65]}>
+          {toolChestAsset ? (
+            <Billboard follow>
+              <mesh position={[0, 1.38 / 2, 0]}>
+                <planeGeometry args={[1.38 * toolChestAsset.aspect, 1.38]} />
+                <meshBasicMaterial
+                  key={toolChestAsset.texture.uuid}
+                  map={toolChestAsset.texture}
+                  alphaTest={0.5}
+                  depthWrite={true}
+                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </Billboard>
+          ) : (
+            <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.92, 1.1, 0.58]} />
+              <meshToonMaterial color="#c82828" gradientMap={TOON_GRADIENT_MAP} />
+              <Edges color="#111111" />
+            </mesh>
+          )}
+        </group>
+
+        <group position={[-0.95, 0.12, 2.75]}>
+          {tireStackAsset ? (
+            <Billboard follow>
+              <mesh position={[0, 1.12 / 2, 0]}>
+                <planeGeometry args={[1.12 * tireStackAsset.aspect, 1.12]} />
+                <meshBasicMaterial
+                  key={tireStackAsset.texture.uuid}
+                  map={tireStackAsset.texture}
+                  alphaTest={0.5}
+                  depthWrite={true}
+                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </Billboard>
+          ) : (
+            <mesh position={[0, 0.45, 0]} castShadow>
+              <cylinderGeometry args={[0.38, 0.38, 0.8, 12]} />
+              <meshToonMaterial color="#18181b" gradientMap={TOON_GRADIENT_MAP} />
+            </mesh>
+          )}
         </group>
       </group>
 
@@ -1194,30 +1235,53 @@ export function DealershipScene() {
         staffId="scooter"
         character="scooter"
         pose="sweeping"
-        position={[-1.4, 0.12, 0.45]}
-        height={1.92}
+        position={[-1.55, 0.12, 0.55]}
+        height={1.88}
         label="Scooter"
       />
 
       {/* ================= ZONE 4: BACK PARTS RACK, COUNTER & DICK ================= */}
-      {/* Rear Gasket & Oil Parts Pegboard Rack Behind Counter Left */}
-      <group position={[-2.15, 0.12, -4.22]}>
-        <mesh position={[0, 1.15, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.72, 2.26, 0.45]} />
-          <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        {partsPegTex ? (
-          <mesh position={[0, 1.48, 0.24]} raycast={() => null}>
-            <planeGeometry args={[1.6, 1.32]} />
-            <meshBasicMaterial map={partsPegTex} polygonOffset polygonOffsetFactor={-1} />
+      {/* Hand-Inked Back Wall Parts Pegboard Cabinet Behind Counter Left (Sheet 08) */}
+      <group
+        position={[-2.65, 1.25, -4.96]}
+        onClick={(e) => {
+          e.stopPropagation();
+          useShopStore.getState().setOpenDrawer('PARTS');
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setPartsZoneHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          setPartsZoneHovered(false);
+          document.body.style.cursor = 'auto';
+        }}
+      >
+        {backPartsRackAsset ? (
+          <mesh>
+            <planeGeometry args={[2.25 * backPartsRackAsset.aspect, 2.25]} />
+            <meshBasicMaterial
+              key={backPartsRackAsset.texture.uuid}
+              map={backPartsRackAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+              side={THREE.DoubleSide}
+            />
           </mesh>
-        ) : null}
+        ) : (
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[1.72, 2.26, 0.2]} />
+            <meshToonMaterial color="#475569" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
+          </mesh>
+        )}
       </group>
 
       {/* Hand-Inked Diamond-Plate Service Counter + Cash Register (Sheet 06) */}
       <group
-        position={[-0.45, 0.12, -2.42]}
+        position={[-0.45, 0.12, -2.75]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore.getState().setOpenDrawer('SERVICE_COUNTER');
@@ -1234,8 +1298,8 @@ export function DealershipScene() {
       >
         {counterAsset ? (
           <Billboard follow>
-            <mesh position={[0, 2.15 / 2, 0]} scale={[-1, 1, 1]}>
-              <planeGeometry args={[2.15 * counterAsset.aspect, 2.15]} />
+            <mesh position={[0, 2.05 / 2, 0]} scale={[-1, 1, 1]}>
+              <planeGeometry args={[2.05 * counterAsset.aspect, 2.05]} />
               <meshBasicMaterial
                 key={counterAsset.texture.uuid}
                 map={counterAsset.texture}
@@ -1254,7 +1318,7 @@ export function DealershipScene() {
           </mesh>
         )}
         {counterHovered ? (
-          <Html center position={[0, 2.35, 0]} distanceFactor={14}>
+          <Html center position={[0, 2.25, 0]} distanceFactor={13}>
             <span className="pointer-events-none whitespace-nowrap rounded-lg border-2 border-black bg-amber-300 px-2 py-0.5 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000]">
               Service Counter &amp; Policies
             </span>
@@ -1262,11 +1326,11 @@ export function DealershipScene() {
         ) : null}
       </group>
 
-      {/* HERO HARD R CYCLES HANGING CHAIN SIGN (Sheet 06) */}
-      <group position={[-0.25, 3.42, -3.72]}>
+      {/* HERO HARD R CYCLES HANGING CHAIN SIGN (Sheet 06 — High Clear Above Counter & Wall Signs) */}
+      <group position={[-0.45, 3.68, -4.45]}>
         {hangingLogoAsset ? (
           <mesh>
-            <planeGeometry args={[1.98 * hangingLogoAsset.aspect, 1.98]} />
+            <planeGeometry args={[1.52 * hangingLogoAsset.aspect, 1.52]} />
             <meshBasicMaterial
               key={hangingLogoAsset.texture.uuid}
               map={hangingLogoAsset.texture}
@@ -1277,7 +1341,7 @@ export function DealershipScene() {
           </mesh>
         ) : (
           <mesh castShadow>
-            <boxGeometry args={[2.52, 1.28, 0.12]} />
+            <boxGeometry args={[2.2, 1.1, 0.12]} />
             <meshToonMaterial color="#18181b" gradientMap={TOON_GRADIENT_MAP} />
             <Edges color="#111111" />
           </mesh>
@@ -1287,32 +1351,32 @@ export function DealershipScene() {
       {/* Non-Overlapping Back & Left Wall Hand-Inked Signs (Sheet 06) */}
       <WallSignPlaque
         texture={signNoRefundsTex}
-        position={[-2.15, 3.32, -4.49]}
+        position={[-2.65, 3.45, -4.98]}
         width={1.12}
         height={0.7}
       />
       <WallSignPlaque
         texture={signCashOnlyTex}
-        position={[0.26, 2.54, -4.49]}
+        position={[0.45, 2.75, -4.98]}
         width={0.84}
         height={0.54}
       />
       <WallSignPlaque
         texture={signLaborRateTex}
-        position={[1.34, 2.54, -4.49]}
+        position={[1.68, 2.75, -4.98]}
         width={1.24}
         height={0.56}
       />
       <WallSignPlaque
         texture={signSafety3rdTex}
-        position={[-6.5, 3.05, -0.45]}
+        position={[-7.3, 3.15, -0.4]}
         rotationY={Math.PI / 2}
         width={0.92}
         height={0.8}
       />
       <WallSignPlaque
         texture={signOilLeaksTex}
-        position={[-6.5, 3.05, 1.15]}
+        position={[-7.3, 3.15, 1.35]}
         rotationY={Math.PI / 2}
         width={1.04}
         height={0.8}
@@ -1323,19 +1387,19 @@ export function DealershipScene() {
         staffId="dick"
         character="dick"
         pose="leaning"
-        position={[-0.45, 0.12, -3.45]}
-        height={2.08}
+        position={[-0.45, 0.12, -3.85]}
+        height={2.05}
         label="Dick"
       />
 
       {/* ================= ZONE 5: 3 LIVE SERVICE BAYS (RIGHT HALF) ================= */}
-      <LiveServiceBay3D bay={liveBays[0]} position={[3.65, 0.12, -2.1]} />
-      <LiveServiceBay3D bay={liveBays[1]} position={[3.65, 0.12, 0.55]} />
-      <LiveServiceBay3D bay={liveBays[2]} position={[3.65, 0.12, 3.1]} />
+      <LiveServiceBay3D bay={liveBays[0]} position={[4.35, 0.12, -2.75]} />
+      <LiveServiceBay3D bay={liveBays[1]} position={[4.35, 0.12, 0.35]} />
+      <LiveServiceBay3D bay={liveBays[2]} position={[4.35, 0.12, 3.45]} />
 
       {/* Bay Wall Hand-Inked Breaker Panel (Sheet 06 — Clear Right of Roll-Up Door) */}
       <group
-        position={[6.18, 2.05, -4.25]}
+        position={[6.85, 2.05, -4.72]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore
@@ -1376,18 +1440,28 @@ export function DealershipScene() {
         )}
       </group>
 
-      {/* Aisle Oil Drum & Safety Stanchion */}
-      <group position={[0.45, 0.12, 3.55]}>
-        <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.32, 0.32, 0.9, 14]} />
-          <meshToonMaterial color="#b91c1c" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
-        <mesh position={[0.55, 0.42, 0.2]} castShadow>
-          <cylinderGeometry args={[0.07, 0.16, 0.84, 10]} />
-          <meshToonMaterial color="#f59e0b" gradientMap={TOON_GRADIENT_MAP} />
-          <Edges color="#111111" />
-        </mesh>
+      {/* Hand-Inked Aisle Waste Oil Drum & Safety Cone (Sheet 08) */}
+      <group position={[0.85, 0.12, 4.1]}>
+        {oilDrumAsset ? (
+          <Billboard follow>
+            <mesh position={[0, 1.22 / 2, 0]}>
+              <planeGeometry args={[1.22 * oilDrumAsset.aspect, 1.22]} />
+              <meshBasicMaterial
+                key={oilDrumAsset.texture.uuid}
+                map={oilDrumAsset.texture}
+                alphaTest={0.45}
+                depthWrite={true}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </Billboard>
+        ) : (
+          <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.32, 0.32, 0.9, 14]} />
+            <meshToonMaterial color="#b91c1c" gradientMap={TOON_GRADIENT_MAP} />
+            <Edges color="#111111" />
+          </mesh>
+        )}
       </group>
 
       {/* Visiting Ambient Customer Chaos Standee */}

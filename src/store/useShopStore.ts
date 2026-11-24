@@ -209,19 +209,26 @@ export const useShopStore = create<ShopStore>()(
         }),
 
       setOpenDrawer: (drawer, rackFilter) =>
-        set((state) => ({
-          openDrawer: drawer,
-          activeRackFilter: rackFilter ?? state.activeRackFilter,
-          cameraFocus:
-            drawer === 'APPAREL'
-              ? 'APPAREL'
-              : drawer === 'PARTS'
-                ? 'PARTS'
-                : drawer === 'SERVICE_COUNTER'
-                  ? 'SERVICE'
-                  : state.cameraFocus,
-          idleSeconds: 0,
-        })),
+        set((state) => {
+          const resetToOverview = drawer === null && !state.activeDialogue;
+          return {
+            openDrawer: drawer,
+            activeRackFilter: rackFilter ?? state.activeRackFilter,
+            cameraFocus:
+              drawer === 'APPAREL'
+                ? 'APPAREL'
+                : drawer === 'PARTS'
+                  ? 'PARTS'
+                  : drawer === 'SERVICE_COUNTER'
+                    ? 'SERVICE'
+                    : resetToOverview
+                      ? 'OVERVIEW'
+                      : state.cameraFocus,
+            cameraYawOffset: resetToOverview ? 0 : state.cameraYawOffset,
+            cameraZoomDelta: resetToOverview ? 0 : state.cameraZoomDelta,
+            idleSeconds: 0,
+          };
+        }),
 
       setActiveRackFilter: (filter) => set({ activeRackFilter: filter, idleSeconds: 0 }),
 
@@ -252,7 +259,7 @@ export const useShopStore = create<ShopStore>()(
       },
 
       setActiveDialogue: (dialogue) =>
-        set((state) => ({
+        set({
           activeDialogue: dialogue,
           cameraFocus: dialogue
             ? dialogue.staffId === 'v'
@@ -260,9 +267,11 @@ export const useShopStore = create<ShopStore>()(
               : dialogue.staffId === 'scooter'
                 ? 'PARTS'
                 : 'SERVICE'
-            : state.cameraFocus,
+            : 'OVERVIEW',
+          cameraYawOffset: 0,
+          cameraZoomDelta: 0,
           idleSeconds: 0,
-        })),
+        }),
 
       pushOverheadBark: (staffId, text, ttlMs = 5200) =>
         set((state) => ({

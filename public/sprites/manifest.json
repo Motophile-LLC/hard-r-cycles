@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T19:49:40.590Z",
+  "generatedAt": "2026-11-24T20:09:43.934Z",
   "source": "D:\\HardRToons\\Assets",
   "targetHeight": 512,
   "characters": {
@@ -473,6 +473,42 @@
       "width": 324,
       "height": 512,
       "anchor": "center"
+    },
+    "prop-parts-shelf": {
+      "frame": "/sprites/props/prop-parts-shelf.png",
+      "width": 448,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-back-parts-rack": {
+      "frame": "/sprites/props/prop-back-parts-rack.png",
+      "width": 478,
+      "height": 512,
+      "anchor": "center"
+    },
+    "prop-rollup-door": {
+      "frame": "/sprites/props/prop-rollup-door.png",
+      "width": 574,
+      "height": 512,
+      "anchor": "center"
+    },
+    "prop-tool-chest": {
+      "frame": "/sprites/props/prop-tool-chest.png",
+      "width": 416,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-tire-stack": {
+      "frame": "/sprites/props/prop-tire-stack.png",
+      "width": 484,
+      "height": 512,
+      "anchor": "bottom-center"
+    },
+    "prop-oil-drum-cone": {
+      "frame": "/sprites/props/prop-oil-drum-cone.png",
+      "width": 508,
+      "height": 512,
+      "anchor": "bottom-center"
     }
   },
   "tools": {

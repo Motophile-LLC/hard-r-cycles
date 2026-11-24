@@ -12,12 +12,19 @@ import { ShopScene } from './ShopScene';
 export function UnifiedShopCanvas() {
   const isTouch = useCoarsePointer();
   const viewMode = useShopStore((s) => s.viewMode);
-  const dragStateRef = useRef<{ active: boolean; lastX: number }>({
-    active: false,
-    lastX: 0,
-  });
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const lastPinchDistRef = useRef<number | null>(null);
+  const lastDragXRef = useRef(0);
 
   useLiveBayPresence();
+
+  const getPinchDistance = () => {
+    const pts = [...activePointersRef.current.values()];
+    if (pts.length < 2) return null;
+    const dx = pts[0].x - pts[1].x;
+    const dy = pts[0].y - pts[1].y;
+    return Math.hypot(dx, dy);
+  };
 
   return (
     <div
@@ -26,21 +33,54 @@ export function UnifiedShopCanvas() {
         if (viewMode !== 'FLOOR') return;
         const target = e.target as HTMLElement | null;
         if (target?.closest('button, a, input')) return;
-        dragStateRef.current = { active: true, lastX: e.clientX };
-      }}
-      onPointerMove={(e) => {
-        if (viewMode !== 'FLOOR' || !dragStateRef.current.active) return;
-        const dx = e.clientX - dragStateRef.current.lastX;
-        if (Math.abs(dx) >= 2) {
-          useShopStore.getState().nudgeCameraYaw(-dx * 0.0028);
-          dragStateRef.current.lastX = e.clientX;
+        activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointersRef.current.size === 1) {
+          lastDragXRef.current = e.clientX;
+          lastPinchDistRef.current = null;
+        } else if (activePointersRef.current.size === 2) {
+          lastPinchDistRef.current = getPinchDistance();
         }
       }}
-      onPointerUp={() => {
-        dragStateRef.current.active = false;
+      onPointerMove={(e) => {
+        if (viewMode !== 'FLOOR') return;
+        if (!activePointersRef.current.has(e.pointerId)) return;
+        activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointersRef.current.size === 2) {
+          const dist = getPinchDistance();
+          if (dist !== null && lastPinchDistRef.current !== null) {
+            const delta = dist - lastPinchDistRef.current;
+            if (Math.abs(delta) >= 2) {
+              useShopStore.getState().nudgeCameraZoom(-delta * 0.018);
+              lastPinchDistRef.current = dist;
+            }
+          } else {
+            lastPinchDistRef.current = dist;
+          }
+          return;
+        }
+
+        if (activePointersRef.current.size === 1) {
+          const dx = e.clientX - lastDragXRef.current;
+          if (Math.abs(dx) >= 2) {
+            useShopStore.getState().nudgeCameraYaw(-dx * 0.0028);
+            lastDragXRef.current = e.clientX;
+          }
+        }
       }}
-      onPointerCancel={() => {
-        dragStateRef.current.active = false;
+      onPointerUp={(e) => {
+        activePointersRef.current.delete(e.pointerId);
+        if (activePointersRef.current.size < 2) {
+          lastPinchDistRef.current = null;
+        }
+        if (activePointersRef.current.size === 1) {
+          const remaining = [...activePointersRef.current.values()][0];
+          lastDragXRef.current = remaining.x;
+        }
+      }}
+      onPointerCancel={(e) => {
+        activePointersRef.current.delete(e.pointerId);
+        lastPinchDistRef.current = null;
       }}
       onWheel={(e) => {
         if (viewMode !== 'FLOOR') return;
@@ -50,8 +90,17 @@ export function UnifiedShopCanvas() {
       <Canvas
         shadows="percentage"
         dpr={isTouch ? [1, 1.5] : [1, 2]}
-        camera={{ position: [7.4, 9.2, 10.6], fov: 35, near: 0.1, far: 80 }}
+        camera={{ position: [8.6, 10.4, 12.4], fov: 35, near: 0.1, far: 80 }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
+        onPointerMissed={() => {
+          if (useShopStore.getState().viewMode !== 'FLOOR') return;
+          const store = useShopStore.getState();
+          if (store.activeDialogue) {
+            store.setActiveDialogue(null);
+          } else if (store.cameraFocus !== 'OVERVIEW') {
+            store.setCameraFocus('OVERVIEW');
+          }
+        }}
       >
         <Suspense fallback={null}>
           {viewMode === 'GAME_BAY' ? <ShopScene /> : <DealershipScene />}

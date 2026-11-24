@@ -67,6 +67,7 @@
 | **Sheet 05** | Live Bay Tech Variants (3 isometric wrenching mechanics) | **GENERATED** | [Sheet_05_Live_Bay_Techs.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_05_Live_Bay_Techs.jpg) |
 | **Sheet 06** | Props, Signage & Surfaces Kit (with Official Stencil Logo) | **GENERATED** | [Sheet_06_Props_Signage_Kit.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_06_Props_Signage_Kit.jpg) |
 | **Sheet 07** | Isometric Bikes, VFX & UI Kit | **GENERATED** | [Sheet_07_Isometric_Bikes_VFX_UI.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_07_Isometric_Bikes_VFX_UI.jpg) |
+| **Sheet 08** | Parts Shelving, Pegboard, Roll-Up Door, Tool Chest, Tires & Waste Drum | **GENERATED** | [Sheet_08_Parts_Garage_Props.jpg](file:///d:/HardRCyclessite/planning/asset-sheets/Sheet_08_Parts_Garage_Props.jpg) |
 
 *(Saved for Phase 2+: Customer 1–3 & Dyna Bro expansion poses, Cinderblock Chopper Easter egg, VIN Diagnostic Counter UI.)*
 

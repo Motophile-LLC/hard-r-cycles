@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { getStaffGreeting } from '@/data/staffDialogue';
 import { useShopStore } from '@/store/useShopStore';
+import { withSpriteVersion } from '@/utils/spriteVersion';
 
 export function ServiceCounterModal() {
   const openDrawer = useShopStore((s) => s.openDrawer);
@@ -84,7 +85,7 @@ export function ServiceCounterModal() {
           <div className="flex items-center gap-3">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-3 border-black bg-amber-200">
               <Image
-                src="/sprites/portraits/dick-front.png"
+                src={withSpriteVersion('/sprites/portraits/dick-glaring.png')}
                 alt="Dick at the Service Counter"
                 fill
                 className="object-contain object-top"

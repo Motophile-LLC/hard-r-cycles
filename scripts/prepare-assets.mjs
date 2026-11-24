@@ -14,6 +14,7 @@ const SHEET_04_SRC = path.join(ROOT_DIR, 'planning', 'asset-sheets', 'Sheet_04_S
 const SHEET_05_SRC = path.join(ROOT_DIR, 'planning', 'asset-sheets', 'Sheet_05_Live_Bay_Techs.jpg');
 const SHEET_06_SRC = path.join(ROOT_DIR, 'planning', 'asset-sheets', 'Sheet_06_Props_Signage_Kit.jpg');
 const SHEET_07_SRC = path.join(ROOT_DIR, 'planning', 'asset-sheets', 'Sheet_07_Isometric_Bikes_VFX_UI.jpg');
+const SHEET_08_SRC = path.join(ROOT_DIR, 'planning', 'asset-sheets', 'Sheet_08_Parts_Garage_Props.jpg');
 const CUSTOMER_ASSETS_DIR = path.resolve(ROOT_DIR, '..', 'HardRToons', 'Assets');
 const OUT_CHARACTERS_DIR = path.join(ROOT_DIR, 'public', 'sprites', 'characters');
 const OUT_V_DIR = path.join(OUT_CHARACTERS_DIR, 'v');
@@ -951,9 +952,96 @@ async function main() {
     }
   }
 
+  // Sheet 08 Parts & Garage Props
+  if (await fileExists(SHEET_08_SRC)) {
+    manifest.props = manifest.props || {};
+    const garagePropSpecs = [
+      [
+        'prop-parts-shelf',
+        { left: 65, top: 33, width: 347, height: 404 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: {
+            skipInnerPockets: false,
+            borderTol: 42,
+            innerPocketDist: 28,
+            minPocketArea: 45,
+            protectHeadEyes: false,
+          },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-back-parts-rack',
+        { left: 526, top: 56, width: 326, height: 357 },
+        {
+          anchor: 'center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-rollup-door',
+        { left: 904, top: 35, width: 412, height: 372 },
+        {
+          anchor: 'center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          minCompPixels: 18,
+        },
+      ],
+      [
+        'prop-tool-chest',
+        { left: 112, top: 416, width: 258, height: 324 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-tire-stack',
+        { left: 612, top: 446, width: 257, height: 276 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: {
+            skipInnerPockets: false,
+            borderTol: 42,
+            innerPocketDist: 28,
+            minPocketArea: 60,
+            protectHeadEyes: false,
+          },
+          keepLargest: true,
+        },
+      ],
+      [
+        'prop-oil-drum-cone',
+        { left: 1020, top: 432, width: 302, height: 308 },
+        {
+          anchor: 'bottom-center',
+          stripOpts: { skipInnerPockets: true, borderTol: 42 },
+          keepComponents: [[0.25, 0.5], [0.82, 0.72]],
+        },
+      ],
+    ];
+
+    for (const [id, region, opts] of garagePropSpecs) {
+      const outPath = path.join(OUT_PROPS_DIR, `${id}.png`);
+      const dims = await extractCutout(SHEET_08_SRC, region, outPath, {
+        targetHeight: TARGET_HEIGHT,
+        ...opts,
+      });
+      manifest.props[id] = {
+        frame: `/sprites/props/${id}.png`,
+        width: dims.width,
+        height: dims.height,
+        anchor: opts.anchor,
+      };
+    }
+  }
+
   manifest.generatedAt = new Date().toISOString();
   await fs.writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-  console.log('[prepare-assets] Sheets 02-07 + customers sliced and manifest updated!');
+  console.log('[prepare-assets] Sheets 02-08 + customers sliced and manifest updated!');
 }
 
 main().catch((err) => {

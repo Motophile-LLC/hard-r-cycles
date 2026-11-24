@@ -1,8 +1,8 @@
 'use client';
 
-import { ExternalLink, Send, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Send, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { resolveStaffReply } from '@/data/staffDialogue';
 import { useShopStore } from '@/store/useShopStore';
 
@@ -11,6 +11,17 @@ export function StaffDialogueBox() {
   const products = useShopStore((s) => s.products);
   const [input, setInput] = useState('');
   const composingRef = useRef(false);
+
+  useEffect(() => {
+    if (!activeDialogue) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        useShopStore.getState().setActiveDialogue(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeDialogue]);
 
   if (!activeDialogue) return null;
 
@@ -23,14 +34,21 @@ export function StaffDialogueBox() {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 flex justify-center px-3 sm:bottom-20">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          useShopStore.getState().setActiveDialogue(null);
+        }
+      }}
+      className="fixed inset-0 z-30 flex items-end justify-center p-2.5 sm:p-4"
+    >
       <section
         aria-label={`Chat with ${activeDialogue.speakerName}`}
-        className="pointer-events-auto w-full max-w-2xl rounded-3xl border-4 border-black bg-amber-50 p-3.5 text-black shadow-[8px_8px_0px_#000] sm:p-4"
+        className="pointer-events-auto max-h-[48dvh] w-full max-w-2xl overflow-y-auto rounded-3xl border-4 border-black bg-amber-50 p-3 text-black shadow-[8px_8px_0px_#000] sm:p-4"
       >
         <div className="flex items-start gap-3">
           {/* Dynamic Mood Portrait */}
-          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-3 border-black bg-amber-200 shadow-[3px_3px_0px_#000] sm:h-24 sm:w-24">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-3 border-black bg-amber-200 shadow-[3px_3px_0px_#000] sm:h-24 sm:w-24">
             <Image
               src={activeDialogue.portraitId}
               alt={`${activeDialogue.speakerName} expression`}
@@ -45,7 +63,7 @@ export function StaffDialogueBox() {
                 <span className="rounded-md border-2 border-black bg-zinc-900 px-2 py-0.5 text-xs font-black uppercase text-amber-300">
                   {activeDialogue.speakerName}
                 </span>
-                <span className="text-[11px] font-black uppercase text-zinc-600">
+                <span className="hidden text-[11px] font-black uppercase text-zinc-600 sm:inline">
                   {activeDialogue.speakerRole}
                 </span>
                 <span className="rounded-md border border-black bg-red-600 px-1.5 py-0.5 text-[10px] font-black uppercase text-white">
@@ -56,14 +74,15 @@ export function StaffDialogueBox() {
               <button
                 type="button"
                 onClick={() => useShopStore.getState().setActiveDialogue(null)}
-                aria-label="Close character chat"
-                className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-black bg-white p-1 hover:bg-zinc-200"
+                aria-label="Back to full shop"
+                className="flex min-h-[34px] shrink-0 cursor-pointer items-center gap-1 rounded-xl border-2 border-black bg-amber-300 px-2.5 py-1 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:bg-amber-200"
               >
-                <X className="h-4 w-4" aria-hidden="true" />
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Back</span>
               </button>
             </div>
 
-            <p className="mt-2 text-xs font-bold leading-snug text-zinc-900 sm:text-sm">
+            <p className="mt-1.5 text-xs font-bold leading-snug text-zinc-900 sm:mt-2 sm:text-sm">
               &ldquo;{activeDialogue.message}&rdquo;
             </p>
           </div>

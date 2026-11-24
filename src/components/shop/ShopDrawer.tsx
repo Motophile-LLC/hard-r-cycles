@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShopStore } from '@/store/useShopStore';
 import type { RackFilter, ShopProduct } from '@/types/shop';
+import { withSpriteVersion } from '@/utils/spriteVersion';
 
 const RACK_TABS: { id: RackFilter; label: string }[] = [
   { id: 'ALL', label: 'All Merch' },
@@ -682,7 +683,7 @@ export function ShopDrawer() {
                   <div className="flex items-center gap-3 rounded-2xl border-3 border-black bg-white p-3.5 shadow-[4px_4px_0px_#000]">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-black bg-amber-100">
                       <Image
-                        src="/sprites/portraits/apprentice-duh.png"
+                        src={withSpriteVersion('/sprites/portraits/scooter-pop.png')}
                         alt="Scooter"
                         fill
                         className="object-contain object-top"
