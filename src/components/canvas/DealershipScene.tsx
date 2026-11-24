@@ -14,6 +14,7 @@ import type {
 } from '@/types/shop';
 import type { CharacterId } from '@/utils/proceduralSprites';
 import { useCoarsePointer } from '@/utils/useCoarsePointer';
+import { FlatRateMasterPoster } from './FlatRateMasterPoster';
 import { SafeHtml as Html } from './SafeHtml';
 import {
   getComicSignPlaqueTexture,
@@ -33,11 +34,11 @@ const CAMERA_PRESETS: Record<
   CameraFocusZone,
   { pos: [number, number, number]; look: [number, number, number] }
 > = {
-  OVERVIEW: { pos: [8.6, 10.4, 12.4], look: [-0.2, 0.65, 0.25] },
-  APPAREL: { pos: [-0.9, 3.25, 3.6], look: [-4.9, 1.32, -0.8] },
-  PARTS: { pos: [1.3, 3.15, 5.5], look: [-2.2, 1.1, 1.7] },
-  SERVICE: { pos: [0.65, 3.05, 1.55], look: [-0.45, 1.38, -3.2] },
-  BAYS: { pos: [8.4, 5.6, 6.4], look: [4.0, 1.1, 0.35] },
+  OVERVIEW: { pos: [9.4, 11.2, 13.6], look: [-0.2, 0.65, 0.25] },
+  APPAREL: { pos: [-1.1, 3.25, 3.8], look: [-5.4, 1.32, -0.8] },
+  PARTS: { pos: [1.3, 3.15, 6.0], look: [-2.5, 1.1, 2.0] },
+  SERVICE: { pos: [0.65, 3.05, 1.45], look: [-0.5, 1.38, -3.5] },
+  BAYS: { pos: [9.2, 5.8, 6.8], look: [4.6, 1.1, 0.35] },
 };
 
 function DealershipCameraRig() {
@@ -165,7 +166,7 @@ function AmbientCustomerMesh({ event }: { event: AmbientCustomerEvent }) {
         />
       </mesh>
 
-      <Billboard follow>
+      <Billboard follow lockX lockZ>
         <group ref={groupRef}>
           <mesh position={[0, height / 2, 0]}>
             <planeGeometry args={[width, height]} />
@@ -320,7 +321,7 @@ function StaffCharacterStandee({
         />
       </mesh>
 
-      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+      <Billboard follow lockX lockZ>
         <group ref={groupRef}>
           <mesh position={[0, height / 2, 0]}>
             <planeGeometry args={[spriteWidth, height]} />
@@ -403,19 +404,17 @@ function ApparelRack3D({
       </mesh>
 
       {rackAsset ? (
-        <Billboard follow>
-          <mesh position={[0, rackHeight / 2, 0]}>
-            <planeGeometry args={[rackWidth, rackHeight]} />
-            <meshBasicMaterial
-              key={rackAsset.texture.uuid}
-              map={rackAsset.texture}
-              alphaTest={0.5}
-              depthWrite={true}
-              color={hovered ? '#fef08a' : '#ffffff'}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </Billboard>
+        <mesh position={[0, rackHeight / 2, 0]} rotation={[0, 0.56, 0]}>
+          <planeGeometry args={[rackWidth, rackHeight]} />
+          <meshBasicMaterial
+            key={rackAsset.texture.uuid}
+            map={rackAsset.texture}
+            alphaTest={0.5}
+            depthWrite={true}
+            color={hovered ? '#fef08a' : '#ffffff'}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
       ) : (
         <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.4, 1.8, 0.5]} />
@@ -517,7 +516,7 @@ function LiveServiceBay3D({
         document.body.style.cursor = 'auto';
       }}
     >
-      {/* Yellow hazard bay outline on floor */}
+      {/* Floor hazard highlight (lets painted bay floor markings show cleanly when idle) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} receiveShadow>
         <planeGeometry args={[3.2, 1.9]} />
         <meshBasicMaterial
@@ -529,7 +528,7 @@ function LiveServiceBay3D({
                 : '#1c1917'
           }
           transparent
-          opacity={hovered ? 0.35 : 0.16}
+          opacity={hovered ? 0.3 : bay.activity === 'BREAKER_BLOWN' ? 0.25 : 0}
           depthWrite={false}
         />
       </mesh>
@@ -579,25 +578,23 @@ function LiveServiceBay3D({
         </mesh>
 
         {bikeAsset ? (
-          <Billboard follow position={[0, 0.44 + bikeH / 2, 0]}>
-            <mesh>
-              <planeGeometry args={[bikeW, bikeH]} />
-              <meshBasicMaterial
-                key={bikeAsset.texture.uuid}
-                map={bikeAsset.texture}
-                alphaTest={0.5}
-                depthWrite={true}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </Billboard>
+          <mesh position={[0, 0.44 + bikeH / 2, 0]} rotation={[0, 0.34, 0]}>
+            <planeGeometry args={[bikeW, bikeH]} />
+            <meshBasicMaterial
+              key={bikeAsset.texture.uuid}
+              map={bikeAsset.texture}
+              alphaTest={0.5}
+              depthWrite={true}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         ) : null}
       </group>
 
       {/* Animated Unique Bay Tech beside lift (Sheet 05) */}
       {bay.activity !== 'IDLE' ? (
         <group position={[0.45, 0, 0.86]}>
-          <Billboard follow>
+          <Billboard follow lockX lockZ>
             <group ref={techGroupRef}>
               <mesh position={[0, techH / 2, 0]}>
                 <planeGeometry args={[techW, techH]} />
@@ -617,7 +614,7 @@ function LiveServiceBay3D({
 
       {/* Hand-Inked Bay VFX Billboards (Sheet 07) */}
       {bay.activity === 'SPARKS' ? (
-        <Billboard follow position={[0.22, 1.35, 0.25]}>
+        <Billboard follow lockX lockZ position={[0.22, 1.35, 0.25]}>
           <group ref={sparksRef}>
             {sparksVfx ? (
               <mesh>
@@ -643,7 +640,7 @@ function LiveServiceBay3D({
       ) : null}
 
       {bay.activity === 'CHAOS_SMOKE' ? (
-        <Billboard follow position={[-0.2, 2.0, 0.12]}>
+        <Billboard follow lockX lockZ position={[-0.2, 2.0, 0.12]}>
           <group ref={smokeRef}>
             {smokeVfx ? (
               <mesh>
@@ -673,7 +670,7 @@ function LiveServiceBay3D({
       ) : null}
 
       {bay.activity === 'BREAKER_BLOWN' && zapVfx ? (
-        <Billboard follow position={[0.45, 2.08, 0.52]}>
+        <Billboard follow lockX lockZ position={[0.45, 2.08, 0.52]}>
           <group ref={zapRef}>
             <mesh>
               <planeGeometry args={[0.9 * zapVfx.aspect, 0.9]} />
@@ -844,11 +841,11 @@ export function DealershipScene() {
         shadow-camera-bottom={-9}
         shadow-bias={-0.0005}
       />
-      <pointLight position={[-4.8, 3.3, -1.4]} intensity={1.7} distance={10} color="#fde68a" />
-      <pointLight position={[-0.45, 3.3, -2.8]} intensity={1.8} distance={10} color="#fde68a" />
-      <pointLight position={[4.35, 3.4, 0.35]} intensity={1.9} distance={11} color="#fef3c7" />
+      <pointLight position={[-5.2, 3.3, -1.6]} intensity={1.7} distance={11} color="#fde68a" />
+      <pointLight position={[-0.5, 3.3, -3.0]} intensity={1.8} distance={11} color="#fde68a" />
+      <pointLight position={[4.95, 3.4, 0.35]} intensity={1.9} distance={12} color="#fef3c7" />
 
-      {/* Base Cutaway Slab (15.2 x 10.6) + Split Wood-to-Cracked-Concrete Floor */}
+      {/* Base Cutaway Slab (16.8 x 11.6) + Hi-Res Split Wood-to-Concrete Floor */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, 0]}
@@ -858,13 +855,13 @@ export function DealershipScene() {
           resetFloorOverview();
         }}
       >
-        <boxGeometry args={[15.2, 10.6, 0.24]} />
+        <boxGeometry args={[16.8, 11.6, 0.24]} />
         <meshToonMaterial color="#57534e" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {shopFloorTex ? (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.126, 0]} raycast={() => null}>
-          <planeGeometry args={[15.12, 10.52]} />
+          <planeGeometry args={[16.72, 11.52]} />
           <meshBasicMaterial
             map={shopFloorTex}
             polygonOffset
@@ -873,9 +870,9 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Cutaway Left Wall (x = -7.5) — Plaster + Olive Wainscoting */}
+      {/* Cutaway Left Wall (x = -8.3) — Plaster + Olive Wainscoting */}
       <mesh
-        position={[-7.5, 2.15, 0]}
+        position={[-8.3, 2.15, 0]}
         receiveShadow
         castShadow
         onClick={(e) => {
@@ -883,18 +880,18 @@ export function DealershipScene() {
           resetFloorOverview();
         }}
       >
-        <boxGeometry args={[0.28, 4.3, 10.6]} />
+        <boxGeometry args={[0.28, 4.3, 11.6]} />
         <meshToonMaterial color="#6e7463" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[-7.5, 4.34, 0]} castShadow raycast={() => null}>
-        <boxGeometry args={[0.38, 0.14, 10.72]} />
+      <mesh position={[-8.3, 4.34, 0]} castShadow raycast={() => null}>
+        <boxGeometry args={[0.38, 0.14, 11.72]} />
         <meshToonMaterial color="#262729" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {wallLeftTex ? (
-        <mesh position={[-7.34, 2.15, 0]} rotation={[0, Math.PI / 2, 0]} raycast={() => null}>
-          <planeGeometry args={[10.5, 4.22]} />
+        <mesh position={[-8.14, 2.15, 0]} rotation={[0, Math.PI / 2, 0]} raycast={() => null}>
+          <planeGeometry args={[11.5, 4.22]} />
           <meshBasicMaterial
             map={wallLeftTex}
             polygonOffset
@@ -903,9 +900,9 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Cutaway Back Wall (z = -5.2) — Plaster + Olive Wainscoting */}
+      {/* Cutaway Back Wall (z = -5.7) — Plaster + Olive Wainscoting */}
       <mesh
-        position={[0, 2.15, -5.2]}
+        position={[0, 2.15, -5.7]}
         receiveShadow
         castShadow
         onClick={(e) => {
@@ -913,18 +910,18 @@ export function DealershipScene() {
           resetFloorOverview();
         }}
       >
-        <boxGeometry args={[15.2, 4.3, 0.28]} />
+        <boxGeometry args={[16.8, 4.3, 0.28]} />
         <meshToonMaterial color="#6e7463" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[0, 4.34, -5.2]} castShadow raycast={() => null}>
-        <boxGeometry args={[15.32, 0.14, 0.38]} />
+      <mesh position={[0, 4.34, -5.7]} castShadow raycast={() => null}>
+        <boxGeometry args={[16.92, 0.14, 0.38]} />
         <meshToonMaterial color="#262729" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
       {wallBackTex ? (
-        <mesh position={[0, 2.15, -5.04]} raycast={() => null}>
-          <planeGeometry args={[15.1, 4.22]} />
+        <mesh position={[0, 2.15, -5.54]} raycast={() => null}>
+          <planeGeometry args={[16.7, 4.22]} />
           <meshBasicMaterial
             map={wallBackTex}
             polygonOffset
@@ -933,8 +930,8 @@ export function DealershipScene() {
         </mesh>
       ) : null}
 
-      {/* Hand-Inked Corrugated Roll-Up Service Bay Door (Sheet 08, Flush on Back Wall) */}
-      <group position={[4.55, 1.92, -4.96]}>
+      {/* Hand-Inked Corrugated Roll-Up Service Bay Door (Sheet 08, Flush Stationary on Back Wall) */}
+      <group position={[5.25, 1.92, -5.46]}>
         {rollupDoorAsset ? (
           <mesh>
             <planeGeometry args={[3.32 * rollupDoorAsset.aspect, 3.32]} />
@@ -955,14 +952,14 @@ export function DealershipScene() {
         )}
       </group>
 
-      {/* Flush Wall Perimeter Timber Beams (Unobstructed View — Zero Mid-Air Crossbeams Over Counter) */}
-      <mesh position={[0, 4.18, -4.96]} castShadow raycast={() => null}>
-        <boxGeometry args={[15.0, 0.18, 0.2]} />
+      {/* Flush Wall Perimeter Timber Beams (Unobstructed View — Zero Mid-Air Crossbeams) */}
+      <mesh position={[0, 4.18, -5.46]} castShadow raycast={() => null}>
+        <boxGeometry args={[16.6, 0.18, 0.2]} />
         <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
-      <mesh position={[-7.26, 4.18, 0]} castShadow raycast={() => null}>
-        <boxGeometry args={[0.2, 0.18, 10.4]} />
+      <mesh position={[-8.06, 4.18, 0]} castShadow raycast={() => null}>
+        <boxGeometry args={[0.2, 0.18, 11.4]} />
         <meshToonMaterial color="#4e3422" gradientMap={TOON_GRADIENT_MAP} />
         <Edges color="#111111" />
       </mesh>
@@ -970,10 +967,10 @@ export function DealershipScene() {
       {/* Wall-Mounted Warm Edison Bulbs (Clear of Staff Line-of-Sight) */}
       {(
         [
-          [-7.12, 3.85, -1.6],
-          [-7.12, 3.85, 1.5],
-          [-0.45, 3.88, -4.82],
-          [4.55, 3.88, -4.82],
+          [-7.92, 3.85, -1.75],
+          [-7.92, 3.85, 1.65],
+          [-0.5, 3.88, -5.32],
+          [5.15, 3.88, -5.32],
         ] as [number, number, number][]
       ).map(([lx, ly, lz], i) => (
         <group key={`bulb-${i}`} position={[lx, ly, lz]} raycast={() => null}>
@@ -992,9 +989,9 @@ export function DealershipScene() {
         </group>
       ))}
 
-      {/* ================= ZONE 1: FRONT ENTRY DOOR (BOTTOM-LEFT CUTAWAY) ================= */}
+      {/* ================= ZONE 1: STATIONARY FRONT ENTRY DOOR (BOTTOM-LEFT) ================= */}
       <group
-        position={[-5.1, 0.12, 4.92]}
+        position={[-5.6, 0.12, 5.25]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore
@@ -1014,18 +1011,16 @@ export function DealershipScene() {
         }}
       >
         {frontDoorAsset ? (
-          <Billboard follow>
-            <mesh position={[0, 2.32 / 2, 0]}>
-              <planeGeometry args={[2.32 * frontDoorAsset.aspect, 2.32]} />
-              <meshBasicMaterial
-                key={frontDoorAsset.texture.uuid}
-                map={frontDoorAsset.texture}
-                alphaTest={0.45}
-                depthWrite={true}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </Billboard>
+          <mesh position={[0, 2.32 / 2, 0]} rotation={[0, 0.28, 0]}>
+            <planeGeometry args={[2.32 * frontDoorAsset.aspect, 2.32]} />
+            <meshBasicMaterial
+              key={frontDoorAsset.texture.uuid}
+              map={frontDoorAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         ) : (
           <mesh position={[0, 1.0, 0]} castShadow>
             <boxGeometry args={[2.1, 2.0, 0.14]} />
@@ -1041,19 +1036,19 @@ export function DealershipScene() {
         ) : null}
       </group>
 
-      {/* ================= ZONE 2: APPAREL RACKS & V (LEFT / BACK-LEFT) ================= */}
+      {/* ================= ZONE 2: STATIONARY APPAREL RACKS & V (LEFT / BACK-LEFT) ================= */}
       <ApparelRack3D
-        position={[-6.05, 0.12, -1.65]}
+        position={[-6.8, 0.12, -1.75]}
         label="Shop Humor Rack (6)"
         onClick={() => openApparel('rack_1_humor')}
       />
       <ApparelRack3D
-        position={[-6.05, 0.12, 1.45]}
+        position={[-6.8, 0.12, 1.65]}
         label="Definition Rack (10)"
         onClick={() => openApparel('rack_2_definition')}
       />
 
-      {/* Hand-Inked Hat Pegboard Wall + Talkin Braap Sticker Table (Sheet 06) */}
+      {/* Stationary Hand-Inked Hat Pegboard Wall + Talkin Braap Sticker Table (Sheet 06) */}
       <group
         onClick={(e) => {
           e.stopPropagation();
@@ -1069,21 +1064,19 @@ export function DealershipScene() {
           document.body.style.cursor = 'auto';
         }}
       >
-        <group position={[-6.35, 2.42, -4.15]}>
+        <group position={[-7.15, 2.45, -4.45]}>
           {hatPegAsset ? (
-            <Billboard follow>
-              <mesh>
-                <planeGeometry args={[1.68 * hatPegAsset.aspect, 1.68]} />
-                <meshBasicMaterial
-                  key={hatPegAsset.texture.uuid}
-                  map={hatPegAsset.texture}
-                  alphaTest={0.5}
-                  depthWrite={true}
-                  color={hatZoneHovered ? '#fef08a' : '#ffffff'}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </Billboard>
+            <mesh rotation={[0, 0.62, 0]}>
+              <planeGeometry args={[1.68 * hatPegAsset.aspect, 1.68]} />
+              <meshBasicMaterial
+                key={hatPegAsset.texture.uuid}
+                map={hatPegAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={hatZoneHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           ) : (
             <mesh castShadow>
               <boxGeometry args={[1.6, 1.35, 0.08]} />
@@ -1093,21 +1086,19 @@ export function DealershipScene() {
           )}
         </group>
 
-        <group position={[-5.55, 0.12, -3.9]}>
+        <group position={[-6.15, 0.12, -4.15]}>
           {stickerTableAsset ? (
-            <Billboard follow>
-              <mesh position={[0, 1.12 / 2, 0]}>
-                <planeGeometry args={[1.12 * stickerTableAsset.aspect, 1.12]} />
-                <meshBasicMaterial
-                  key={stickerTableAsset.texture.uuid}
-                  map={stickerTableAsset.texture}
-                  alphaTest={0.5}
-                  depthWrite={true}
-                  color={hatZoneHovered ? '#fef08a' : '#ffffff'}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </Billboard>
+            <mesh position={[0, 1.12 / 2, 0]} rotation={[0, 0.56, 0]}>
+              <planeGeometry args={[1.12 * stickerTableAsset.aspect, 1.12]} />
+              <meshBasicMaterial
+                key={stickerTableAsset.texture.uuid}
+                map={stickerTableAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={hatZoneHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           ) : (
             <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
               <boxGeometry args={[1.5, 0.85, 0.75]} />
@@ -1130,12 +1121,12 @@ export function DealershipScene() {
         staffId="v"
         character="v"
         pose="front"
-        position={[-4.15, 0.12, -0.55]}
+        position={[-4.65, 0.12, -0.55]}
         height={2.02}
         label="V"
       />
 
-      {/* ================= ZONE 3: PARTS SHELVING, TOOL CHEST, TIRES & SCOOTER (Sheet 08) ================= */}
+      {/* ================= ZONE 3: STATIONARY PARTS SHELVING, TOOL CHEST, TIRES & SCOOTER ================= */}
       <group
         onClick={(e) => {
           e.stopPropagation();
@@ -1151,21 +1142,19 @@ export function DealershipScene() {
           document.body.style.cursor = 'auto';
         }}
       >
-        <group position={[-2.55, 0.12, 2.25]}>
+        <group position={[-2.8, 0.12, 2.55]}>
           {partsShelfAsset ? (
-            <Billboard follow>
-              <mesh position={[0, 2.18 / 2, 0]}>
-                <planeGeometry args={[2.18 * partsShelfAsset.aspect, 2.18]} />
-                <meshBasicMaterial
-                  key={partsShelfAsset.texture.uuid}
-                  map={partsShelfAsset.texture}
-                  alphaTest={0.5}
-                  depthWrite={true}
-                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </Billboard>
+            <mesh position={[0, 2.18 / 2, 0]} rotation={[0, 0.54, 0]}>
+              <planeGeometry args={[2.18 * partsShelfAsset.aspect, 2.18]} />
+              <meshBasicMaterial
+                key={partsShelfAsset.texture.uuid}
+                map={partsShelfAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           ) : (
             <mesh position={[0, 0.95, 0]} castShadow receiveShadow>
               <boxGeometry args={[1.64, 1.9, 0.62]} />
@@ -1182,21 +1171,19 @@ export function DealershipScene() {
           ) : null}
         </group>
 
-        <group position={[-4.05, 0.12, 2.65]}>
+        <group position={[-4.45, 0.12, 2.95]}>
           {toolChestAsset ? (
-            <Billboard follow>
-              <mesh position={[0, 1.38 / 2, 0]}>
-                <planeGeometry args={[1.38 * toolChestAsset.aspect, 1.38]} />
-                <meshBasicMaterial
-                  key={toolChestAsset.texture.uuid}
-                  map={toolChestAsset.texture}
-                  alphaTest={0.5}
-                  depthWrite={true}
-                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </Billboard>
+            <mesh position={[0, 1.38 / 2, 0]} rotation={[0, 0.52, 0]}>
+              <planeGeometry args={[1.38 * toolChestAsset.aspect, 1.38]} />
+              <meshBasicMaterial
+                key={toolChestAsset.texture.uuid}
+                map={toolChestAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           ) : (
             <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
               <boxGeometry args={[0.92, 1.1, 0.58]} />
@@ -1206,21 +1193,19 @@ export function DealershipScene() {
           )}
         </group>
 
-        <group position={[-0.95, 0.12, 2.75]}>
+        <group position={[-1.05, 0.12, 3.05]}>
           {tireStackAsset ? (
-            <Billboard follow>
-              <mesh position={[0, 1.12 / 2, 0]}>
-                <planeGeometry args={[1.12 * tireStackAsset.aspect, 1.12]} />
-                <meshBasicMaterial
-                  key={tireStackAsset.texture.uuid}
-                  map={tireStackAsset.texture}
-                  alphaTest={0.5}
-                  depthWrite={true}
-                  color={partsZoneHovered ? '#fef08a' : '#ffffff'}
-                  side={THREE.DoubleSide}
-                />
-              </mesh>
-            </Billboard>
+            <mesh position={[0, 1.12 / 2, 0]} rotation={[0, 0.45, 0]}>
+              <planeGeometry args={[1.12 * tireStackAsset.aspect, 1.12]} />
+              <meshBasicMaterial
+                key={tireStackAsset.texture.uuid}
+                map={tireStackAsset.texture}
+                alphaTest={0.5}
+                depthWrite={true}
+                color={partsZoneHovered ? '#fef08a' : '#ffffff'}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           ) : (
             <mesh position={[0, 0.45, 0]} castShadow>
               <cylinderGeometry args={[0.38, 0.38, 0.8, 12]} />
@@ -1235,15 +1220,15 @@ export function DealershipScene() {
         staffId="scooter"
         character="scooter"
         pose="sweeping"
-        position={[-1.55, 0.12, 0.55]}
+        position={[-1.7, 0.12, 0.65]}
         height={1.88}
         label="Scooter"
       />
 
-      {/* ================= ZONE 4: BACK PARTS RACK, COUNTER & DICK ================= */}
+      {/* ================= ZONE 4: BACK PARTS RACK, STATIONARY COUNTER, POSTER & DICK ================= */}
       {/* Hand-Inked Back Wall Parts Pegboard Cabinet Behind Counter Left (Sheet 08) */}
       <group
-        position={[-2.65, 1.25, -4.96]}
+        position={[-3.15, 1.25, -5.46]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore.getState().setOpenDrawer('PARTS');
@@ -1279,9 +1264,9 @@ export function DealershipScene() {
         )}
       </group>
 
-      {/* Hand-Inked Diamond-Plate Service Counter + Cash Register (Sheet 06) */}
+      {/* Stationary Hand-Inked Diamond-Plate Service Counter + Cash Register (Sheet 06) */}
       <group
-        position={[-0.45, 0.12, -2.75]}
+        position={[-0.5, 0.12, -2.95]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore.getState().setOpenDrawer('SERVICE_COUNTER');
@@ -1297,19 +1282,17 @@ export function DealershipScene() {
         }}
       >
         {counterAsset ? (
-          <Billboard follow>
-            <mesh position={[0, 2.05 / 2, 0]} scale={[-1, 1, 1]}>
-              <planeGeometry args={[2.05 * counterAsset.aspect, 2.05]} />
-              <meshBasicMaterial
-                key={counterAsset.texture.uuid}
-                map={counterAsset.texture}
-                alphaTest={0.5}
-                depthWrite={true}
-                color={counterHovered ? '#fef08a' : '#ffffff'}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </Billboard>
+          <mesh position={[0, 2.05 / 2, 0]} rotation={[0, 0.22, 0]} scale={[-1, 1, 1]}>
+            <planeGeometry args={[2.05 * counterAsset.aspect, 2.05]} />
+            <meshBasicMaterial
+              key={counterAsset.texture.uuid}
+              map={counterAsset.texture}
+              alphaTest={0.5}
+              depthWrite={true}
+              color={counterHovered ? '#fef08a' : '#ffffff'}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         ) : (
           <mesh position={[0, 0.56, 0]} castShadow receiveShadow>
             <boxGeometry args={[3.1, 1.1, 0.88]} />
@@ -1327,7 +1310,7 @@ export function DealershipScene() {
       </group>
 
       {/* HERO HARD R CYCLES HANGING CHAIN SIGN (Sheet 06 — High Clear Above Counter & Wall Signs) */}
-      <group position={[-0.45, 3.68, -4.45]}>
+      <group position={[-0.5, 3.68, -4.92]}>
         {hangingLogoAsset ? (
           <mesh>
             <planeGeometry args={[1.52 * hangingLogoAsset.aspect, 1.52]} />
@@ -1351,55 +1334,58 @@ export function DealershipScene() {
       {/* Non-Overlapping Back & Left Wall Hand-Inked Signs (Sheet 06) */}
       <WallSignPlaque
         texture={signNoRefundsTex}
-        position={[-2.65, 3.45, -4.98]}
+        position={[-3.15, 3.45, -5.48]}
         width={1.12}
         height={0.7}
       />
       <WallSignPlaque
         texture={signCashOnlyTex}
-        position={[0.45, 2.75, -4.98]}
+        position={[0.72, 2.98, -5.48]}
         width={0.84}
         height={0.54}
       />
       <WallSignPlaque
         texture={signLaborRateTex}
-        position={[1.68, 2.75, -4.98]}
+        position={[0.72, 2.25, -5.48]}
         width={1.24}
         height={0.56}
       />
       <WallSignPlaque
         texture={signSafety3rdTex}
-        position={[-7.3, 3.15, -0.4]}
+        position={[-8.1, 3.15, -0.35]}
         rotationY={Math.PI / 2}
         width={0.92}
         height={0.8}
       />
       <WallSignPlaque
         texture={signOilLeaksTex}
-        position={[-7.3, 3.15, 1.35]}
+        position={[-8.1, 3.15, 1.55]}
         rotationY={Math.PI / 2}
         width={1.04}
         height={0.8}
       />
 
-      {/* Dick behind Service Counter (Reactive Sheet 03 Sprites) */}
+      {/* Dynamic Flat Rate Master SaaS Wall Poster (www.flatratemaster.com) */}
+      <FlatRateMasterPoster position={[2.45, 2.48, -5.46]} />
+
+      {/* Dick behind Service Counter on Anti-Fatigue Mat (Reactive Sheet 03 Sprites) */}
       <StaffCharacterStandee
         staffId="dick"
         character="dick"
         pose="leaning"
-        position={[-0.45, 0.12, -3.85]}
+        position={[-0.5, 0.12, -4.25]}
         height={2.05}
         label="Dick"
       />
 
-      {/* ================= ZONE 5: 3 LIVE SERVICE BAYS (RIGHT HALF) ================= */}
-      <LiveServiceBay3D bay={liveBays[0]} position={[4.35, 0.12, -2.75]} />
-      <LiveServiceBay3D bay={liveBays[1]} position={[4.35, 0.12, 0.35]} />
-      <LiveServiceBay3D bay={liveBays[2]} position={[4.35, 0.12, 3.45]} />
+      {/* ================= ZONE 5: 3 SPACIOUS SERVICE BAYS (RIGHT HALF) ================= */}
+      <LiveServiceBay3D bay={liveBays[0]} position={[4.95, 0.12, -3.15]} />
+      <LiveServiceBay3D bay={liveBays[1]} position={[4.95, 0.12, 0.35]} />
+      <LiveServiceBay3D bay={liveBays[2]} position={[4.95, 0.12, 3.85]} />
 
-      {/* Bay Wall Hand-Inked Breaker Panel (Sheet 06 — Clear Right of Roll-Up Door) */}
+      {/* Stationary Hand-Inked Breaker Panel (Sheet 06 — Clear Right of Roll-Up Door) */}
       <group
-        position={[6.85, 2.05, -4.72]}
+        position={[7.55, 2.05, -5.25]}
         onClick={(e) => {
           e.stopPropagation();
           useShopStore
@@ -1419,18 +1405,16 @@ export function DealershipScene() {
         }}
       >
         {breakerBoxAsset ? (
-          <Billboard follow>
-            <mesh>
-              <planeGeometry args={[1.48 * breakerBoxAsset.aspect, 1.48]} />
-              <meshBasicMaterial
-                key={breakerBoxAsset.texture.uuid}
-                map={breakerBoxAsset.texture}
-                alphaTest={0.45}
-                depthWrite={true}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </Billboard>
+          <mesh rotation={[0, 0.24, 0]}>
+            <planeGeometry args={[1.48 * breakerBoxAsset.aspect, 1.48]} />
+            <meshBasicMaterial
+              key={breakerBoxAsset.texture.uuid}
+              map={breakerBoxAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         ) : (
           <mesh castShadow>
             <boxGeometry args={[0.72, 1.05, 0.18]} />
@@ -1440,21 +1424,19 @@ export function DealershipScene() {
         )}
       </group>
 
-      {/* Hand-Inked Aisle Waste Oil Drum & Safety Cone (Sheet 08) */}
-      <group position={[0.85, 0.12, 4.1]}>
+      {/* Stationary Hand-Inked Aisle Waste Oil Drum & Safety Cone (Sheet 08) */}
+      <group position={[0.95, 0.12, 4.45]}>
         {oilDrumAsset ? (
-          <Billboard follow>
-            <mesh position={[0, 1.22 / 2, 0]}>
-              <planeGeometry args={[1.22 * oilDrumAsset.aspect, 1.22]} />
-              <meshBasicMaterial
-                key={oilDrumAsset.texture.uuid}
-                map={oilDrumAsset.texture}
-                alphaTest={0.45}
-                depthWrite={true}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </Billboard>
+          <mesh position={[0, 1.22 / 2, 0]} rotation={[0, 0.45, 0]}>
+            <planeGeometry args={[1.22 * oilDrumAsset.aspect, 1.22]} />
+            <meshBasicMaterial
+              key={oilDrumAsset.texture.uuid}
+              map={oilDrumAsset.texture}
+              alphaTest={0.45}
+              depthWrite={true}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         ) : (
           <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
             <cylinderGeometry args={[0.32, 0.32, 0.9, 14]} />

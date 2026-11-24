@@ -44,6 +44,7 @@ export type ShopDrawerKind =
   | 'PARTS'
   | 'QUICK_SHOP'
   | 'SERVICE_COUNTER'
+  | 'FLAT_RATE_MASTER'
   | 'CART';
 
 export type RackFilter =

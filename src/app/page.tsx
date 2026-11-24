@@ -2,6 +2,7 @@ import { UnifiedShopCanvasWrapper } from '@/components/canvas/UnifiedShopCanvasW
 import { TorqueMiniGame } from '@/components/minigames/TorqueMiniGame';
 import { WiringMiniGame } from '@/components/minigames/WiringMiniGame';
 import { AccountModal } from '@/components/shop/AccountModal';
+import { FlatRateMasterModal } from '@/components/shop/FlatRateMasterModal';
 import { FrontDoorGateModal } from '@/components/shop/FrontDoorGateModal';
 import { ServiceCounterModal } from '@/components/shop/ServiceCounterModal';
 import { ShopDrawer } from '@/components/shop/ShopDrawer';
@@ -23,6 +24,7 @@ export default function HomePage() {
       <StaffDialogueBox />
       <ShopDrawer />
       <ServiceCounterModal />
+      <FlatRateMasterModal />
       <AccountModal />
       <FrontDoorGateModal />
 

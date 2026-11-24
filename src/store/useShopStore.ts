@@ -191,7 +191,7 @@ export const useShopStore = create<ShopStore>()(
 
       nudgeCameraYaw: (delta) =>
         set((state) => ({
-          cameraYawOffset: clamp(state.cameraYawOffset + delta, -0.65, 0.65),
+          cameraYawOffset: clamp(state.cameraYawOffset + delta, -0.45, 0.45),
           idleSeconds: 0,
         })),
 

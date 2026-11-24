@@ -90,7 +90,7 @@ export function UnifiedShopCanvas() {
       <Canvas
         shadows="percentage"
         dpr={isTouch ? [1, 1.5] : [1, 2]}
-        camera={{ position: [8.6, 10.4, 12.4], fov: 35, near: 0.1, far: 80 }}
+        camera={{ position: [9.4, 11.2, 13.6], fov: 35, near: 0.1, far: 85 }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onPointerMissed={() => {
           if (useShopStore.getState().viewMode !== 'FLOOR') return;

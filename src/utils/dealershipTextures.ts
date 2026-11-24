@@ -22,7 +22,7 @@ function createCachedCanvas(
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.anisotropy = 16;
   tex.needsUpdate = true;
   textureCache.set(key, tex);
   return tex;
@@ -145,109 +145,305 @@ export function getGarageWallTexture(variant: 'left' | 'back'): THREE.CanvasText
   });
 }
 
-/** Option A split floor: warm wood planks in left apparel corner + cracked greasy concrete in bays */
+/** Option A hi-res split floor: weathered plank showroom + riveted steel threshold + bay zones */
 export function getShopFloorTexture(): THREE.CanvasTexture | null {
-  return createCachedCanvas('shop-floor-v2', 1024, 768, (ctx, w, h) => {
-    // Slab base: weathered shop concrete (#8c8a82)
-    ctx.fillStyle = '#8c8a82';
+  return createCachedCanvas('shop-floor-v3', 2048, 1408, (ctx, w, h) => {
+    // Slab base: weathered shop concrete (#8a877e)
+    ctx.fillStyle = '#8a877e';
     ctx.fillRect(0, 0, w, h);
 
-    // Subtle concrete mottling
-    for (let i = 0; i < 140; i++) {
+    // Subtle concrete mottling & aggregate texture
+    for (let i = 0; i < 320; i++) {
       const x = hash01(i * 2.7) * w;
       const y = hash01(i * 5.9) * h;
-      const r = 18 + hash01(i * 9.1) * 55;
+      const r = 16 + hash01(i * 9.1) * 72;
       ctx.fillStyle =
-        i % 2 === 0 ? 'rgba(65, 63, 56, 0.08)' : 'rgba(180, 176, 164, 0.07)';
+        i % 2 === 0 ? 'rgba(60, 58, 52, 0.085)' : 'rgba(186, 182, 170, 0.075)';
       ctx.beginPath();
-      ctx.ellipse(x, y, r, r * 0.6, hash01(i) * Math.PI, 0, Math.PI * 2);
+      ctx.ellipse(x, y, r, r * 0.58, hash01(i) * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Concrete expansion grid lines
-    ctx.strokeStyle = 'rgba(20, 20, 20, 0.32)';
-    ctx.lineWidth = 3;
-    for (let x = 256; x < w; x += 192) {
+    // Fine aggregate grit speckles across concrete
+    for (let i = 0; i < 900; i++) {
+      const gx = (0.315 + hash01(i * 1.7 + 3) * 0.685) * w;
+      const gy = hash01(i * 3.9 + 11) * h;
+      const sz = 1.5 + hash01(i * 6.1) * 3;
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(24, 24, 22, 0.16)' : 'rgba(220, 214, 200, 0.14)';
+      ctx.fillRect(gx, gy, sz, sz);
+    }
+
+    // Concrete slab expansion joints
+    ctx.strokeStyle = 'rgba(20, 20, 20, 0.34)';
+    ctx.lineWidth = 4;
+    for (let x = Math.round(w * 0.38); x < w; x += 256) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
     }
-    for (let y = 192; y < h; y += 192) {
+    for (let y = 234; y < h; y += 234) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
+      ctx.moveTo(w * 0.315, y);
       ctx.lineTo(w, y);
       ctx.stroke();
     }
 
-    // Apparel Zone Wood Planks (Left ~30% strip)
-    const woodWidth = Math.round(w * 0.3);
-    ctx.fillStyle = '#a68b67';
-    ctx.fillRect(0, 0, woodWidth, h);
+    // Apparel Showroom Wood Planks (Left 31.5% strip)
+    const thresholdX = Math.round(w * 0.315);
+    ctx.fillStyle = '#a48762';
+    ctx.fillRect(0, 0, thresholdX, h);
 
-    const plankW = 34;
-    for (let px = 0; px < woodWidth; px += plankW) {
-      ctx.fillStyle =
-        Math.floor(px / plankW) % 2 === 0 ? '#a88c68' : '#9c805d';
-      ctx.fillRect(px, 0, plankW, h);
+    const plankW = 54;
+    for (let px = 0; px < thresholdX; px += plankW) {
+      const colIdx = Math.floor(px / plankW);
+      const toneShift = (colIdx % 3 === 0 ? '#aa8d68' : colIdx % 3 === 1 ? '#9d805c' : '#b0936f');
+      ctx.fillStyle = toneShift;
+      ctx.fillRect(px, 0, Math.min(plankW, thresholdX - px), h);
+
+      // Hand-inked vertical seam
       ctx.strokeStyle = '#3f2e1d';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(px, 0);
       ctx.lineTo(px, h);
       ctx.stroke();
 
-      // Horizontal board joints + grain
-      const jointY = 80 + Math.round(hash01(px * 0.13) * 180);
-      for (let y = jointY; y < h; y += 260) {
+      // Subtle vertical wood grain streaks
+      ctx.strokeStyle = 'rgba(58, 38, 20, 0.14)';
+      ctx.lineWidth = 2;
+      for (let g = 0; g < 3; g++) {
+        const gx = px + 10 + g * 16;
+        if (gx >= thresholdX - 4) continue;
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx + (hash01(px + g) - 0.5) * 6, h);
+        ctx.stroke();
+      }
+
+      // Staggered horizontal plank seams & nail pairs
+      const jointY = 110 + Math.round(hash01(px * 0.17) * 260);
+      for (let y = jointY; y < h; y += 340) {
+        const pw = Math.min(plankW, thresholdX - px);
+        ctx.strokeStyle = '#3f2e1d';
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(px, y);
-        ctx.lineTo(px + plankW, y);
+        ctx.lineTo(px + pw, y);
+        ctx.stroke();
+
+        if (pw > 28) {
+          ctx.fillStyle = '#261a10';
+          ctx.beginPath();
+          ctx.arc(px + 12, y - 10, 2.5, 0, Math.PI * 2);
+          ctx.arc(px + pw - 12, y - 10, 2.5, 0, Math.PI * 2);
+          ctx.arc(px + 12, y + 10, 2.5, 0, Math.PI * 2);
+          ctx.arc(px + pw - 12, y + 10, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Subtle showroom walkway scuff & satin sheen near front entry & apparel aisle
+    const sheen = ctx.createRadialGradient(w * 0.2, h * 0.62, 40, w * 0.2, h * 0.62, 320);
+    sheen.addColorStop(0, 'rgba(255, 240, 210, 0.16)');
+    sheen.addColorStop(1, 'rgba(255, 240, 210, 0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, thresholdX, h);
+
+    // Riveted diamond-plate steel divider threshold at u = 0.315
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(thresholdX - 16, 0, 32, h);
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(thresholdX - 16, 0);
+    ctx.lineTo(thresholdX - 16, h);
+    ctx.moveTo(thresholdX + 16, 0);
+    ctx.lineTo(thresholdX + 16, h);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)';
+    ctx.lineWidth = 2;
+    for (let y = 18; y < h; y += 32) {
+      ctx.beginPath();
+      ctx.moveTo(thresholdX - 8, y - 6);
+      ctx.lineTo(thresholdX + 8, y + 6);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(thresholdX - 9, y, 2.5, 0, Math.PI * 2);
+      ctx.arc(thresholdX + 9, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Curving rubber tire roll-in tracks from Bay Roll-Up Door (u=0.808, v=0.02) to Bays 1-3
+    const doorX = w * 0.808;
+    const doorY = h * 0.02;
+    const trackTargets: [number, number][] = [
+      [w * 0.796, h * 0.226],
+      [w * 0.796, h * 0.53],
+      [w * 0.796, h * 0.834],
+    ];
+    ctx.strokeStyle = 'rgba(22, 20, 18, 0.22)';
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    for (const [tx, ty] of trackTargets) {
+      for (const offset of [-18, 18]) {
+        ctx.beginPath();
+        ctx.moveTo(doorX + offset, doorY);
+        ctx.quadraticCurveTo(doorX - 90 + offset, ty * 0.6, tx - 140, ty + offset * 0.6);
         ctx.stroke();
       }
     }
 
-    // Bold comic ink divider threshold between wood retail floor and concrete shop
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(woodWidth - 6, 0, 12, h);
+    // Anti-fatigue rubber mat behind Dick's Counter (u = 0.470, v = 0.131)
+    const matW = 280;
+    const matH = 128;
+    const matX = Math.round(w * 0.47 - matW / 2);
+    const matY = Math.round(h * 0.131 - matH / 2);
+    ctx.fillStyle = '#27272a';
+    ctx.beginPath();
+    ctx.roundRect(matX, matY, matW, matH, 14);
+    ctx.fill();
     ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(234, 179, 8, 0.75)';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(woodWidth - 6, 0);
-    ctx.lineTo(woodWidth - 6, h);
-    ctx.moveTo(woodWidth + 6, 0);
-    ctx.lineTo(woodWidth + 6, h);
+    ctx.roundRect(matX + 10, matY + 10, matW - 20, matH - 20, 8);
     ctx.stroke();
 
-    // Hand-inked floor cracks & oil puddles around center counter & bay lifts
+    // Diagonal yellow & black safety hazard line at u = 0.641 + Techs Only Stencil
+    const hazardX = Math.round(w * 0.641);
+    const hazardW = 28;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(hazardX - hazardW / 2, 0, hazardW, h);
+    ctx.clip();
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(hazardX - hazardW / 2, 0, hazardW, h);
+    ctx.fillStyle = '#18181b';
+    for (let sy = -40; sy < h + 40; sy += 44) {
+      ctx.beginPath();
+      ctx.moveTo(hazardX - hazardW / 2 - 8, sy);
+      ctx.lineTo(hazardX + hazardW / 2 + 8, sy + 24);
+      ctx.lineTo(hazardX + hazardW / 2 + 8, sy + 46);
+      ctx.lineTo(hazardX - hazardW / 2 - 8, sy + 22);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(hazardX - hazardW / 2, 0, hazardW, h);
+
+    ctx.save();
+    ctx.translate(hazardX - 30, h * 0.52);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = 'rgba(24, 24, 27, 0.56)';
+    ctx.font = '900 22px Bahnschrift, Arial Black, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SERVICE BAYS  •  TECHS ONLY', 0, 0);
+    ctx.restore();
+
+    // 3 Painted Service Bay Boxes + Floor Drain Grates + Stenciled Bay Numbers
+    const bayZones: { label: string; u: number; v: number }[] = [
+      { label: 'BAY 1', u: 0.796, v: 0.226 },
+      { label: 'BAY 2', u: 0.796, v: 0.53 },
+      { label: 'BAY 3', u: 0.796, v: 0.834 },
+    ];
+    const boxW = 460;
+    const boxH = 278;
+
+    for (const bay of bayZones) {
+      const bx = Math.round(w * bay.u - boxW / 2);
+      const by = Math.round(h * bay.v - boxH / 2);
+
+      // Lift footprint oil shadow
+      ctx.fillStyle = 'rgba(24, 22, 18, 0.24)';
+      ctx.beginPath();
+      ctx.ellipse(w * bay.u, h * bay.v + 6, 178, 86, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Weathered yellow corner brackets
+      const arm = 54;
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.84)';
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'square';
+      const corners: [number, number, number, number][] = [
+        [bx, by, 1, 1],
+        [bx + boxW, by, -1, 1],
+        [bx, by + boxH, 1, -1],
+        [bx + boxW, by + boxH, -1, -1],
+      ];
+      for (const [cx, cy, sx, sy] of corners) {
+        ctx.beginPath();
+        ctx.moveTo(cx + sx * arm, cy);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx, cy + sy * arm);
+        ctx.stroke();
+      }
+
+      // Dashed bay side borders
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.42)';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([24, 16]);
+      ctx.strokeRect(bx + 6, by + 6, boxW - 12, boxH - 12);
+      ctx.setLineDash([]);
+
+      // Recessed slotted floor drain grate at left of bay
+      const gx = bx + 28;
+      const gy = Math.round(h * bay.v - 34);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(gx, gy, 54, 68);
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(gx, gy, 54, 68);
+      ctx.fillStyle = '#0f172a';
+      for (let slot = 8; slot < 62; slot += 11) {
+        ctx.fillRect(gx + 8, gy + slot, 38, 5);
+      }
+
+      // Bold stenciled BAY 1 / 2 / 3 floor label on lower-left corner
+      ctx.fillStyle = 'rgba(24, 24, 27, 0.65)';
+      ctx.font = '900 32px Impact, Arial Black, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(bay.label, bx + 20, by + boxH - 14);
+    }
+
+    // Hand-inked floor cracks & oil puddles across concrete shop floor
     const oilSpots: [number, number, number, number][] = [
-      [0.44, 0.25, 36, 18],
-      [0.48, 0.56, 44, 24],
-      [0.72, 0.3, 52, 26],
-      [0.78, 0.55, 62, 32],
-      [0.74, 0.8, 56, 28],
-      [0.62, 0.69, 34, 18],
+      [0.44, 0.44, 52, 26],
+      [0.52, 0.72, 60, 30],
+      [0.72, 0.34, 48, 22],
+      [0.84, 0.66, 56, 26],
+      [0.75, 0.9, 44, 20],
+      [0.58, 0.86, 42, 22],
     ];
     for (const [nx, ny, rx, ry] of oilSpots) {
       const cx = nx * w;
       const cy = ny * h;
-      ctx.fillStyle = 'rgba(24, 24, 20, 0.34)';
+      ctx.fillStyle = 'rgba(24, 24, 20, 0.3)';
       ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0.15, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, rx, ry, 0.18, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(17, 17, 17, 0.48)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.45)';
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     }
 
     const cracks: number[][][] = [
-      [[0.4, 0.42], [0.46, 0.47], [0.51, 0.45], [0.57, 0.53]],
-      [[0.63, 0.19], [0.68, 0.26], [0.74, 0.24]],
-      [[0.64, 0.72], [0.7, 0.78], [0.76, 0.86], [0.83, 0.89]],
-      [[0.86, 0.4], [0.91, 0.46], [0.95, 0.44]],
+      [[0.38, 0.4], [0.44, 0.46], [0.51, 0.44], [0.58, 0.52]],
+      [[0.66, 0.16], [0.71, 0.23], [0.77, 0.21]],
+      [[0.67, 0.7], [0.73, 0.77], [0.79, 0.85], [0.85, 0.88]],
+      [[0.89, 0.42], [0.94, 0.48], [0.98, 0.46]],
     ];
-    ctx.strokeStyle = 'rgba(17, 17, 17, 0.62)';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(17, 17, 17, 0.56)';
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (const crack of cracks) {
@@ -258,6 +454,19 @@ export function getShopFloorTexture(): THREE.CanvasTexture | null {
       });
       ctx.stroke();
     }
+
+    // Soft ambient occlusion vignette along back (top) & left wall edges
+    const leftAo = ctx.createLinearGradient(0, 0, 96, 0);
+    leftAo.addColorStop(0, 'rgba(17, 17, 17, 0.42)');
+    leftAo.addColorStop(1, 'rgba(17, 17, 17, 0)');
+    ctx.fillStyle = leftAo;
+    ctx.fillRect(0, 0, 96, h);
+
+    const backAo = ctx.createLinearGradient(0, 0, 0, 96);
+    backAo.addColorStop(0, 'rgba(17, 17, 17, 0.42)');
+    backAo.addColorStop(1, 'rgba(17, 17, 17, 0)');
+    ctx.fillStyle = backAo;
+    ctx.fillRect(0, 0, w, 96);
   });
 }
 
