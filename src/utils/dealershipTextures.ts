@@ -827,3 +827,61 @@ export function getComicSignPlaqueTexture(
     ctx.strokeRect(9, 9, w - 18, h - 18);
   });
 }
+
+/** Stenciled weathered red steel wrap label for the 3D 55-gallon waste oil drum */
+export function getOilDrumLabelTexture(): THREE.CanvasTexture | null {
+  return createCachedCanvas('oil-drum-label-v1', 512, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle oil drips & grunge patches
+    for (let i = 0; i < 24; i++) {
+      const x = hash01(i * 4.3) * w;
+      const y = hash01(i * 7.1) * h;
+      const r = 10 + hash01(i * 2.9) * 26;
+      ctx.fillStyle = `rgba(24, 14, 12, ${(0.1 + hash01(i) * 0.16).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Center & rear stencil panels so "USED OIL" reads around front face
+    ctx.fillStyle = 'rgba(254, 243, 199, 0.92)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 58px Impact, Arial Black, sans-serif';
+    ctx.fillText('USED OIL', w * 0.5, h * 0.42);
+    ctx.font = '900 26px Bahnschrift, Arial Black, sans-serif';
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText('WASTE • NO SMOKING', w * 0.5, h * 0.68);
+  });
+}
+
+/** Comic window sign decal for the 3D glass front entry door */
+export function getDoor18PlusDecalTexture(): THREE.CanvasTexture | null {
+  return createCachedCanvas('door-18plus-decal-v1', 256, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#f5edd8';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 14;
+    ctx.strokeRect(7, 7, w - 14, h - 14);
+
+    ctx.fillStyle = '#b91c1c';
+    ctx.fillRect(20, 22, w - 40, 48);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fef3c7';
+    ctx.font = '900 28px Impact, Arial Black, sans-serif';
+    ctx.fillText('ENTER SHOP', w / 2, 46);
+
+    ctx.fillStyle = '#111111';
+    ctx.font = '900 54px Impact, Arial Black, sans-serif';
+    ctx.fillText('— 18+ —', w / 2, 126);
+
+    ctx.fillStyle = '#7f1d1d';
+    ctx.font = '900 24px Bahnschrift, Arial Black, sans-serif';
+    ctx.fillText('EXPLICIT HUMOR', w / 2, 196);
+  });
+}
