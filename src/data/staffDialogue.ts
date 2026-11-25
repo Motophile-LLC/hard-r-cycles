@@ -47,7 +47,7 @@ const QUICK_REPLIES: Record<StaffId, { label: string; query: string }[]> = {
   ],
   dick: [
     { label: 'Shop policies', query: 'shipping returns refunds' },
-    { label: 'Where is VIN Diag?', query: 'vin diagnostic repair' },
+    { label: 'VIN Diag Counter', query: 'vin diagnostic repair' },
     { label: "Where's my order?", query: 'where is my order shipping tracking status' },
     { label: 'Flat Rate tips', query: 'flat rate panic game tips' },
     { label: 'My shop status / VIP?', query: 'vip secret stash status tier' },
@@ -346,6 +346,17 @@ export function resolveStaffReply(
   products: ShopProduct[],
   memoryState?: ResolvedNpcMemoryState,
 ): StaffDialogueState {
+  const reply = resolveStaffReplyCore(staffId, rawQuery, products, memoryState);
+  const cleanedQuery = rawQuery.trim();
+  return cleanedQuery ? { ...reply, lastUserQuery: cleanedQuery } : reply;
+}
+
+function resolveStaffReplyCore(
+  staffId: StaffId,
+  rawQuery: string,
+  products: ShopProduct[],
+  memoryState?: ResolvedNpcMemoryState,
+): StaffDialogueState {
   const q = rawQuery.trim().toLowerCase();
   const meta = STAFF_META[staffId];
   const mem = memoryState ?? resolveCustomerMemoryState(null, null);
@@ -612,22 +623,26 @@ export function resolveStaffReply(
       staffId,
       portraitId:
         staffId === 'dick'
-          ? portrait('dick-eyeroll')
+          ? portrait('dick-smartass')
           : staffId === 'v'
-            ? portrait('v-eyeroll')
-            : portrait('scooter-whoa'),
-      moodLabel: 'SERVICE COUNTER',
+            ? portrait('v-smirk')
+            : portrait('scooter-hyped'),
+      moodLabel: 'VIN COUNTER LIVE',
       tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
         staffId === 'dick'
-          ? 'The AI VIN Diagnostic counter is getting wired up from Flat Rate Master in a later drop. Until then, labor is $100/hr — $200 if you watch — or go clock into a Service Bay and fix one yourself!'
+          ? 'The VIN Diagnostic Counter is LIVE behind me — punch your 17-digit VIN (or Year/Make/Model) for a free NHTSA decode, save your bike to your garage, grab a Roast Card, or jump into Flat Rate Master.'
           : staffId === 'v'
-            ? 'Dick is still arguing with the VIN scanner wiring. Go play Flat Rate Panic in the bays or grab a Shop Humor shirt while he calms down.'
-            : 'Dick tried hooking up the VIN tool with jumper cables earlier... we are waiting for Phase 5!',
+            ? 'Dick finally plugged in the free NHTSA VIN scanner at the Service Counter. Tap below to decode your bike, export a Roast Card, or launch Flat Rate Master.'
+            : 'The Service Counter VIN scanner is LIVE for free! Tap below to scan your bike and get roasted by Dick!',
       suggestedProducts: [],
       quickReplies: QUICK_REPLIES[staffId],
+      actionButton: {
+        label: 'Open VIN Counter',
+        drawer: 'SERVICE_COUNTER',
+      },
     };
   }
 

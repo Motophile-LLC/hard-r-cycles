@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, Send, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Send, Share2, ShoppingCart, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { resolveStaffReply } from '@/data/staffDialogue';
@@ -20,6 +20,7 @@ export function StaffDialogueBox() {
     if (!activeDialogue) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (useShopStore.getState().activeRoastCard) return;
         useShopStore.getState().setActiveDialogue(null);
       }
     };
@@ -40,6 +41,28 @@ export function StaffDialogueBox() {
     const reply = resolveStaffReply(activeDialogue.staffId, clean, products, memState);
     useShopStore.getState().setActiveDialogue(reply);
     setInput('');
+  };
+
+  const handleOpenRoastCard = () => {
+    useShopStore.getState().setActiveRoastCard({
+      staffId: activeDialogue.staffId,
+      speakerName: activeDialogue.speakerName,
+      speakerRole: activeDialogue.speakerRole,
+      portraitSrc: activeDialogue.portraitId,
+      moodLabel: activeDialogue.moodLabel,
+      tierBadge: activeDialogue.tierBadge,
+      promptHeading: activeDialogue.lastUserQuery
+        ? 'Rider Asked At The Floor'
+        : 'Checked In With The Crew',
+      promptText:
+        activeDialogue.lastUserQuery ||
+        `Talked to ${activeDialogue.speakerName} on the Hard R floor`,
+      roastText: activeDialogue.message,
+      footerNote: activeDialogue.suggestedProducts[0]?.title
+        ? `Rack pick: ${activeDialogue.suggestedProducts[0].title}`
+        : 'Hard R Cycles Interactive Shop',
+      source: 'dialogue',
+    });
   };
 
   return (
@@ -85,15 +108,26 @@ export function StaffDialogueBox() {
                 ) : null}
               </div>
 
-              <button
-                type="button"
-                onClick={() => useShopStore.getState().setActiveDialogue(null)}
-                aria-label="Back to full shop"
-                className="flex min-h-[34px] shrink-0 cursor-pointer items-center gap-1 rounded-xl border-2 border-black bg-amber-300 px-2.5 py-1 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:bg-amber-200"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Back</span>
-              </button>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleOpenRoastCard}
+                  aria-label="Share Roast Card"
+                  className="flex min-h-[34px] cursor-pointer items-center gap-1 rounded-xl border-2 border-black bg-white px-2.5 py-1 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:bg-zinc-100"
+                >
+                  <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Share Card</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useShopStore.getState().setActiveDialogue(null)}
+                  aria-label="Back to full shop"
+                  className="flex min-h-[34px] cursor-pointer items-center gap-1 rounded-xl border-2 border-black bg-amber-300 px-2.5 py-1 text-[11px] font-black uppercase text-black shadow-[2px_2px_0px_#000] hover:bg-amber-200"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Back</span>
+                </button>
+              </div>
             </div>
 
             <p className="mt-1.5 text-xs font-bold leading-snug text-zinc-900 sm:mt-2 sm:text-sm">
@@ -160,6 +194,21 @@ export function StaffDialogueBox() {
 
         {/* Quick-Tap Topics + Zero-API Local Question Box */}
         <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {activeDialogue.actionButton ? (
+            <button
+              type="button"
+              onClick={() => {
+                const targetDrawer = activeDialogue.actionButton?.drawer;
+                if (!targetDrawer) return;
+                useShopStore.getState().setActiveDialogue(null);
+                useShopStore.getState().setOpenDrawer(targetDrawer);
+              }}
+              className="flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-zinc-900 px-2.5 py-1 text-[11px] font-black text-amber-300 hover:bg-zinc-800"
+            >
+              <Wrench className="h-3 w-3" aria-hidden="true" />
+              {activeDialogue.actionButton.label}
+            </button>
+          ) : null}
           {activeDialogue.quickReplies.map((qr) => (
             <button
               key={qr.label}

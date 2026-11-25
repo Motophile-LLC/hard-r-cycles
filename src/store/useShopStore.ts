@@ -8,9 +8,11 @@ import type {
   CartItem,
   CustomerMemoryRecord,
   CustomerOrderSummary,
+  GarageBike,
   LiveBayOccupant,
   OverheadBark,
   RackFilter,
+  RoastCardPayload,
   ShopDrawerKind,
   ShopProduct,
   ShopViewMode,
@@ -94,6 +96,7 @@ export interface ShopStore {
   atlasTotalPins: number;
   hasSignedAtlas: boolean;
   atlasPromptDismissed: boolean;
+  activeRoastCard: RoastCardPayload | null;
 
   setHasHydrated: (hydrated: boolean) => void;
   setAccountModalOpen: (open: boolean) => void;
@@ -106,6 +109,8 @@ export interface ShopStore {
   ) => void;
   setCustomerMemory: (memory: CustomerMemoryRecord | null) => void;
   setUserOrders: (orders: CustomerOrderSummary[]) => void;
+  updateGarageBikes: (bikes: GarageBike[]) => void;
+  setActiveRoastCard: (card: RoastCardPayload | null) => void;
   setHighlightedDrop: (handle: string | null, fallbackLabel?: string | null) => void;
   setReferralSource: (ref: string | null) => void;
   setAtlasSummary: (dots: AtlasPinDot[], totalPins: number, hasSigned: boolean) => void;
@@ -179,6 +184,7 @@ export const useShopStore = create<ShopStore>()(
       atlasTotalPins: 0,
       hasSignedAtlas: false,
       atlasPromptDismissed: false,
+      activeRoastCard: null,
 
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
@@ -196,6 +202,15 @@ export const useShopStore = create<ShopStore>()(
       setCustomerMemory: (memory) => set({ customerMemory: memory }),
 
       setUserOrders: (orders) => set({ userOrders: orders }),
+
+      updateGarageBikes: (bikes) =>
+        set((state) => ({
+          userProfile: state.userProfile
+            ? { ...state.userProfile, garage_bikes: bikes }
+            : null,
+        })),
+
+      setActiveRoastCard: (card) => set({ activeRoastCard: card, idleSeconds: 0 }),
 
       setHighlightedDrop: (handle, fallbackLabel = null) =>
         set({

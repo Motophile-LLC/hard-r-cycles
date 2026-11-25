@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { GarageBike } from '../../types/shop';
 import type { CustomerMemoryRecord } from './types';
 
 export function isMissingTableError(
@@ -232,6 +233,135 @@ export async function recordLoiterKickInCustomerMemory(
   if (error) {
     if (!isMissingTableError(error)) {
       console.warn('[npc-memory] loiter update error:', error.message);
+    }
+    return existing;
+  }
+
+  return normalizeCustomerMemoryRow(updated as Record<string, unknown>);
+}
+
+function cleanGarageStr(val: unknown, maxLen: number): string {
+  if (typeof val !== 'string') return '';
+  return val
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .trim()
+    .slice(0, maxLen);
+}
+
+/**
+ * Pure helper that deduplicates by VIN or Year/Make/Model, places the active
+ * diagnosed bike first (`index 0`), preserves existing IDs/notes, and caps at 10.
+ */
+export function mergeDecodedBikeIntoGarage(
+  existingBikes: unknown,
+  incoming: {
+    year: string;
+    make: string;
+    model: string;
+    vin: string;
+    notes: string;
+  },
+): GarageBike[] {
+  const normalizedExisting: GarageBike[] = [];
+  if (Array.isArray(existingBikes)) {
+    for (const raw of existingBikes.slice(0, 10)) {
+      if (!raw || typeof raw !== 'object') continue;
+      const rec = raw as Record<string, unknown>;
+      const year = cleanGarageStr(rec.year, 8);
+      const make = cleanGarageStr(rec.make, 40);
+      const model = cleanGarageStr(rec.model, 60);
+      const vin = cleanGarageStr(rec.vin, 24).toUpperCase();
+      const notes = cleanGarageStr(rec.notes, 180);
+      if (!make && !model && !vin) continue;
+      normalizedExisting.push({
+        id: cleanGarageStr(rec.id, 40) || `bike-${normalizedExisting.length + 1}`,
+        year,
+        make,
+        model,
+        vin,
+        notes,
+      });
+    }
+  }
+
+  const nextYear = cleanGarageStr(incoming.year, 8);
+  const nextMake = cleanGarageStr(incoming.make, 40);
+  const nextModel = cleanGarageStr(incoming.model, 60);
+  const nextVin = cleanGarageStr(incoming.vin, 24).toUpperCase();
+  const nextNotes = cleanGarageStr(incoming.notes, 180);
+
+  if (!nextMake && !nextModel && !nextVin) {
+    return normalizedExisting;
+  }
+
+  const targetSig = `${nextYear}|${nextMake}|${nextModel}`.toLowerCase();
+  let matchedBike: GarageBike | null = null;
+  const remainder: GarageBike[] = [];
+
+  for (const bike of normalizedExisting) {
+    const existingVin = bike.vin.trim().toUpperCase();
+    const existingSig = `${bike.year}|${bike.make}|${bike.model}`.toLowerCase();
+    const sameVin = Boolean(nextVin && existingVin && existingVin === nextVin);
+    const sameYmm = Boolean((nextMake || nextModel) && existingSig === targetSig);
+
+    if (!matchedBike && (sameVin || sameYmm)) {
+      matchedBike = bike;
+    } else {
+      remainder.push(bike);
+    }
+  }
+
+  const mergedBike: GarageBike = {
+    id:
+      matchedBike?.id ||
+      `bike-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    year: nextYear || matchedBike?.year || '',
+    make: nextMake || matchedBike?.make || '',
+    model: nextModel || matchedBike?.model || '',
+    vin: nextVin || matchedBike?.vin || '',
+    notes: nextNotes || matchedBike?.notes || '',
+  };
+
+  return [mergedBike, ...remainder].slice(0, 10);
+}
+
+export async function recordDiagnosticInCustomerMemory(
+  adminDb: SupabaseClient,
+  params: {
+    userId: string;
+    bikeLabel: string;
+    symptomSummary: string;
+  },
+): Promise<CustomerMemoryRecord | null> {
+  if (!params.userId) return null;
+
+  const existing = await ensureCustomerMemoryRow(adminDb, params.userId);
+  if (!existing) return null;
+
+  const bikeLabel =
+    cleanGarageStr(params.bikeLabel, 100) ||
+    existing.last_diagnosed_bike ||
+    'Unknown Bike';
+  const symptomSummary =
+    cleanGarageStr(params.symptomSummary, 140) ||
+    existing.last_symptom ||
+    'General check';
+
+  const { data: updated, error } = await adminDb
+    .from('customer_memory')
+    .update({
+      diagnostic_count: existing.diagnostic_count + 1,
+      last_diagnosed_bike: bikeLabel,
+      last_symptom: symptomSummary,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', params.userId)
+    .select('*')
+    .single();
+
+  if (error) {
+    if (!isMissingTableError(error)) {
+      console.warn('[npc-memory] diagnostic update error:', error.message);
     }
     return existing;
   }

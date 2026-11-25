@@ -9,6 +9,7 @@ import type {
   CustomerTier,
   ResolvedNpcMemoryState,
 } from '@/features/npc-memory/types';
+import type { RoastCardPayload } from '@/features/roast-card/types';
 
 export type {
   AtlasPinDot,
@@ -18,6 +19,7 @@ export type {
   CustomerOrderSummary,
   CustomerTier,
   ResolvedNpcMemoryState,
+  RoastCardPayload,
 };
 
 export type RackSlot =
@@ -120,6 +122,11 @@ export interface StaffDialogueState {
   message: string;
   suggestedProducts: ShopProduct[];
   quickReplies: { label: string; query: string }[];
+  lastUserQuery?: string;
+  actionButton?: {
+    label: string;
+    drawer: Exclude<ShopDrawerKind, null>;
+  };
 }
 
 export interface CartItem {

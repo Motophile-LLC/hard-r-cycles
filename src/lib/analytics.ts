@@ -8,7 +8,29 @@ export type ShopAnalyticsEventName =
   | 'poster_click_flatratemaster'
   | 'deep_link_landed'
   | 'atlas_open'
-  | 'atlas_checkin';
+  | 'atlas_checkin'
+  | 'diagnostic_decode'
+  | 'diagnostic_frm_handoff'
+  | 'roast_card_open'
+  | 'roast_card_share';
+
+/**
+ * Builds the tracked Flat Rate Master partner referral URL (`ref=ZUPH9BXM`),
+ * optionally appending a sanitized 17-character alphanumeric VIN query param.
+ */
+export function buildFlatRateMasterReferralUrl(vin?: string): string {
+  const url = new URL(FLAT_RATE_MASTER_REFERRAL_URL);
+  url.searchParams.set('ref', FLAT_RATE_MASTER_REF_CODE);
+
+  if (vin) {
+    const normalized = vin.trim().replace(/[\s-]+/g, '').toUpperCase();
+    if (/^[A-HJ-NPR-Z0-9]{17}$/.test(normalized)) {
+      url.searchParams.set('vin', normalized);
+    }
+  }
+
+  return url.toString();
+}
 
 export type ShopAnalyticsMetadata = Record<
   string,

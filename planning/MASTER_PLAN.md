@@ -1,17 +1,18 @@
 # Hard R Cycles — Master Plan & Phase 2 Community Blueprint
 
-**Status:** v1 Live in Production (`https://hardrcycles.com`) — Phase 2 Expansion & Community Blueprint Locked (Ready for Wave 0 Execution)  
+**Status:** v1 + Phase 2 **Waves 0–3 Completed & Live** (`https://hardrcycles.com`) — **Next Up: Wave 4 (Modular In-Site Selfie Contest Station)**  
+**Supabase Project:** `szrkpwtavfzmnzctsixx` (Migrations `001`–`005` applied in production; `006_orders_delivered_status.sql` authored locally as optional run; Next migration: `007_selfie_contests.sql`)  
 **Workspaces:**
 - `d:\HardRCyclessite` — Unified 3D Dealership, Storefront & *Flat Rate Panic*
 - `d:\HardRToons` — Automated 2D Cartoon Production Pipeline
 - `d:\hardrgame` — Preserved v0 mini-game backup
-**Google Doc Single Source of Truth:** [Hard R Cycles — Master Plan & Phase 2 Blueprint](https://docs.google.com/document/d/1t6dCbM2Xdex_CzDz3-dyrU3u1hTIVmtUwNgS2z6BSBI/edit) (`Original Phase 2 Draft (Archive)` tab preserved for history)
+**Google Doc Single Source of Truth:** [Hard R Cycles — Master Plan & Phase 2 Blueprint](https://docs.google.com/document/d/1t6dCbM2Xdex_CzDz3-dyrU3u1hTIVmtUwNgS2z6BSBI/edit?tab=t.tu10mtddzr24) (`Original Phase 2 Draft (Archive)` tab `t.0` preserved for history)
 
 ---
 
 ## 1. Current v1 Live State Audit (What Is Built Today)
 
-Everything planned across original Phases 0 through 4 is live in production, along with user SSO profiles and the Flat Rate Master wall poster. Only original Phase 5 (Service Counter VIN Diagnostics) remains queued, now integrated cleanly into Wave 3 below.
+Everything planned across original Phases 0 through 5 and Phase 2 Waves 0–3 is now implemented and verified in production (`d:\HardRCyclessite`). Phase 2 community Waves 4–5 remain queued below.
 
 | Plan Phase | Actual Status Today | Live Implementation & Remaining Scope |
 | :--- | :--- | :--- |
@@ -21,8 +22,8 @@ Everything planned across original Phases 0 through 4 is live in production, alo
 | **Phase 3 — *Flat Rate Panic* + Live Bays** | **Done (Live)** | Unified playable Bays 1–3 (`src/components/canvas/ShopScene.tsx`), Supabase Realtime Presence + 3 NPC Bay Techs (`src/hooks/useLiveBayPresence.ts`), `public.repair_orders` leaderboard, and server-verified Stripe coupon rewards (`public.reward_claims`). |
 | **Phase 4 — Staff Chat & Ambient Chaos** | **Done (Live)** | 100% local zero-API dialogue engine (`src/data/staffDialogue.ts`) for V, Dick, and Scooter with dynamic mood portraits, catalog Q&A, 30-second loitering barks, and ambient customer spawns. |
 | **Bonus — Supabase SSO & Rider Profiles** | **Done (Live)** | **Google & Apple SSO-only** authentication + `public.profiles` (`garage_bikes`, `mechanic_handle`, shipping defaults, `role`, and `user_id` foreign keys across `orders`, `repair_orders`, `reward_claims` in `supabase/migrations/004_user_profiles_and_roles.sql`, `src/components/shop/AccountModal.tsx`, `src/components/auth/SsoSignInButtons.tsx`). |
-| **Bonus — Flat Rate Master 3D Poster** | **Done (Needs Ref URL + Analytics)** | Interactive animated wall poster & modal (`src/components/canvas/FlatRateMasterPoster.tsx`, `src/components/shop/FlatRateMasterModal.tsx`). Queued in Wave 0 to swap outbound CTA to `https://app.motophileusa.com/sign-up?ref=ZUPH9BXM` and log clicks. |
-| **Original Phase 5 — VIN Diagnostics** | **Queued (Wave 3)** | `src/components/shop/ServiceCounterModal.tsx` currently displays a Phase 5 placeholder card; full NHTSA decode + rate-limited troubleshooting + Roast Card share generator scheduled in Wave 3. |
+| **Bonus — Flat Rate Master 3D Poster** | **Done (Live — Wave 0)** | Interactive animated wall poster & modal (`src/components/canvas/FlatRateMasterPoster.tsx`, `src/components/shop/FlatRateMasterModal.tsx`) wired to `https://app.motophileusa.com/sign-up?ref=ZUPH9BXM` with outbound `poster_open_flatratemaster` and `poster_click_flatratemaster` tracking. |
+| **Original Phase 5 — VIN Diagnostics** | **Done (Wave 3 Option B)** | `src/components/shop/ServiceCounterModal.tsx` runs free NHTSA vPIC VIN decode (+ Year/Make/Model fallback), `$0` local Dick bench triage, `profiles.garage_bikes` + `customer_memory` sync, Shareable Roast Card PNGs, and tracked referral handoff (`?ref=ZUPH9BXM`) into Flat Rate Master. |
 
 ---
 
@@ -36,13 +37,12 @@ Everything planned across original Phases 0 through 4 is live in production, alo
   - `parts_shelf` — Parts, Stickers & Shop Gear
   - `vip_secret_stash` — Locked VIP-only apparel unlocked via `customer_memory`
 - **Native Payment & Memory Loop:** Every native Hard R sale runs through Stripe Checkout -> `/api/webhooks/stripe` -> `public.orders` -> `public.customer_memory` + Printful/DIY fulfillment dispatch.
-- **MotophileUSA Partner Rack (Isolated & Separate):** Existing MotophileUSA Shopify bridge products (`checkout_mode = 'shopify_link'`, 19 items in `planning/shopify_catalog_export.json`) consolidate onto a **single dedicated Partner Rack (`motophile_partner`)**. MotophileUSA remains strictly separate legally, financially, and operationally from Hard R Cycles.
+- **MotophileUSA Partner Rack (Isolated & Separate):** Existing MotophileUSA Shopify bridge products (`checkout_mode = 'shopify_link'`, 19 items in `planning/shopify_catalog_export.json`) intentionally remain on their existing launch showroom racks for now while the catalog fills the floor, until native Hard R dropship products (`stripe_pod` / `stripe_diy`) are ready to launch, at which point Motophile items consolidate onto the single dedicated `motophile_partner` rack. MotophileUSA remains strictly separate legally, financially, and operationally from Hard R Cycles.
 
 ### Minimal LLM Budget Guardrail (Decision #2)
 
-- **Zero-API Core (`USD 0/month`):** Normal staff chat (`V`, `Dick`, `Scooter`), `customer_memory` tier personalization, and `episode_knowledge` cartoon lore references remain **100% local (`USD 0/month`)** via deterministic template interpolation and structured keyword/tag matching in `src/data/staffDialogue.ts`. No `pgvector` embeddings or per-turn chat LLM calls are needed.
-- **Free VIN Decoding (`USD 0/month`):** Vehicle VIN lookups use the public **NHTSA vPIC API** with automatic Year/Make/Model fallback.
-- **Strictly Bounded LLM Usage:** External LLM API calls are minimized and restricted solely to rate-limited **VIN Diagnostic troubleshooting** in Wave 3 (cached for common bike/symptom pairs and capped per SSO user/day). Roast Cards use local-first character punchline templates, with optional tightly capped AI generation only if explicitly enabled later.
+- **Zero-API Core (`USD 0/month`):** Normal staff chat (`V`, `Dick`, `Scooter`), `customer_memory` tier personalization, `episode_knowledge` cartoon lore references, Wave 3 Service Counter VIN bench triage, and client-side Canvas Roast Cards remain **100% local (`USD 0/month`)** via deterministic template interpolation and structured keyword/tag matching. No `pgvector` embeddings or per-turn chat LLM calls are needed.
+- **Free VIN Decoding + Flat Rate Master Handoff (`USD 0/month`):** Vehicle VIN lookups use the public **NHTSA vPIC API** with Year/Make/Model fallback (`Option B`), then hand off riders who want deep AI repair diagnostics and flat-rate labor guides directly into **Flat Rate Master** via partner referral URL (`?ref=ZUPH9BXM`, preserving `?vin=...` when entered).
 
 ### SSO-Only Identity & Security Policy (Decision #3)
 
@@ -92,13 +92,13 @@ Engineer all Phase 2 community systems as clean, swappable feature modules so th
 - **Zero-Cost Stylized Comic Map (`GET /api/atlas/pins`):** Renders a custom pan/zoom cartoon SVG/Canvas atlas UI matching the Hard R aesthetic (zero Mapbox fees) with zoom-based GeoJSON pin clustering.
 - **Onboarding & Privacy:** Show a welcoming first-stop *"Sign the Shop Wall"* prompt after passing the 18+ gate, and update `src/app/privacy/page.tsx` to document coarse city-level pin storage and visibility controls.
 
-### 3.4 Service Counter VIN Diagnostics (Original Phase 5) & Shareable Roast Cards
+### 3.4 Service Counter VIN Diagnostics (Option B) & Shareable Roast Cards
 
-- **VIN & Symptom Terminal (`src/components/shop/ServiceCounterModal.tsx`):**
-  - 17-character **NHTSA vPIC API** VIN decode (free) + Year/Make/Model fallback.
-  - Auto-saves decoded bikes into `public.profiles.garage_bikes` and increments `diagnostic_count`, `last_diagnosed_bike`, and `last_symptom` in `public.customer_memory`.
-  - Rate-limited LLM troubleshooting response with cached fault patterns, daily SSO usage caps, and a clear mechanical safety disclaimer.
-- **One-Tap Shareable Q&A / Roast Cards:** Client-side canvas generator renders a bold cel-shaded comic PNG featuring the character portrait (`Dick`, `V`, or `Scooter`), the rider's question/symptom, a punchy roast response (local-first template engine), and `hardrcycles.com` branding for instant Web Share or download.
+- **VIN & Symptom Terminal (`src/features/diagnostics/` + `ServiceCounterModal.tsx` + `POST /api/diagnostics`):**
+  - 17-character **NHTSA vPIC API** VIN decode (free `$0`) with automatic Year/Make/Model fallback when older choppers or unrecognized VINs fail decode.
+  - Auto-saves decoded bikes into `public.profiles.garage_bikes` and increments `diagnostic_count`, `last_diagnosed_bike`, and `last_symptom` in `public.customer_memory` for signed-in Google/Apple SSO riders.
+  - Generates instant `$0` local Dick bench triage (3–4 archetype-aware inspection steps + comic roast + mechanical safety disclaimer) and hands off deep AI troubleshooting & labor audits to **Flat Rate Master** (`https://app.motophileusa.com/sign-up?ref=ZUPH9BXM&vin=...`, logging `diagnostic_frm_handoff`).
+- **One-Tap Shareable Q&A / Roast Cards (`src/features/roast-card/`):** Client-side HTML5 Canvas comic PNG generator (`Square 1:1` and `Story 9:16`) featuring the character portrait (`Dick`, `V`, or `Scooter`), the rider's question or bike/symptom, their response/roast, and `hardrcycles.com` branding for instant Web Share or PNG download from both `StaffDialogueBox` and `ServiceCounterModal`.
 
 ### 3.5 In-Site Selfie Contest ("Selfie of the Week / Day") — Anti-Spam Model (Decision #4)
 
@@ -150,7 +150,7 @@ Turns the automated `HardRToons` production workflow into a weekly user-written 
 
 ## 4. Supabase Schema Roadmap (All `auth.users(id)` UUIDs + Strict RLS)
 
-### Migration `005_phase2_memory_atlas_and_racks.sql`
+### Migration `005_phase2_memory_atlas_and_racks.sql` **(Applied in Supabase Production)**
 
 ```sql
 -- Expand rack slots to isolate Motophile Partner Rack and add VIP / Episode racks
@@ -242,14 +242,18 @@ create table if not exists public.analytics_events (
 );
 ```
 
-### Migration `006_selfie_contests.sql`
+### Migration `006_orders_delivered_status.sql` **(Authored Locally — Optional / Ready in Supabase SQL Editor)**
+
+- Extends `public.orders.status` check constraint with `'delivered'` alongside `'paid'`, `'fulfilling'`, `'shipped'`, `'cancelled'`, and `'refunded'`, supporting explicit `/admin → Orders` delivery status marking (the app also automatically treats orders marked `'shipped'` for `>= 5` days as delivered so NPC walk-in greetings work before applying).
+
+### Migration `007_selfie_contests.sql` **(Queued for Wave 4)**
 
 - `public.selfie_contests` — Active daily/weekly contest cycles (`id`, `title`, `cadence`, `starts_at`, `ends_at`, `status`: `active | voting | closed`, `winner_selfie_id`).
 - `public.character_selfies` — User submissions (`id`, `contest_id`, `user_id` FK, `character_name`: `scooter | v | dick`, `social_platform`, `user_social_handle`, `image_url`, `moderation_status`: `pending | approved | rejected`, `vote_count`, `external_post_url`).
 - `public.selfie_votes` — SSO vote ledger (`contest_id`, `selfie_id`, `user_id` FK, unique `(selfie_id, user_id)`).
 - Supabase Storage `selfies` bucket with size/MIME limits and RLS policies.
 
-### Migration `007_skit_madlibs.sql`
+### Migration `008_skit_madlibs.sql` **(Queued for Wave 5)**
 
 - `public.skit_contests` — Weekly script competitions (`id`, `slug`, `title`, `premise`, `template_beats` JSONB, `submission_closes_at`, `voting_closes_at`, `status`: `submitting | voting | locked | published`, `exported_manifest` JSONB).
 - `public.skit_blanks` — Ordered fill-in slots per contest (`id`, `contest_id`, `blank_key`, `prompt_label`, `max_chars`).
@@ -272,49 +276,45 @@ create table if not exists public.analytics_events (
 | **Sheet 07** | Isometric Bikes, VFX & UI Kit | **DONE / LIVE** | `planning/asset-sheets/Sheet_07_Isometric_Bikes_VFX_UI.jpg` |
 | **Sheet 08** | Parts Shelving, Pegboard, Roll-Up Door, Tool Chest, Tires & Drum | **DONE / LIVE** | `planning/asset-sheets/Sheet_08_Parts_Garage_Props.jpg` |
 
-**Phase 2 Asset Queue:**
-- 3D Shop Wall Atlas board art + glowing cluster node markers
-- VIP Secret Stash rack signage & Motophile Partner Rack header plaque
-- In-shop Selfie Contest Winner Board frame + Photo Mode borders (`Dick`, `V`, `Scooter`)
-- Shop TV / Weekly Mad-Libs Skit Archive console prop
-- Remaining v1 deferred character/prop polish: Customer 1–3 & Dyna Bro expansion poses, Cinderblock Chopper Easter egg, VIN Diagnostic Counter terminal UI
+**Phase 2 Asset Progress:**
+- **DONE (Wave 2):** 3D Shop Wall Atlas board art + pulsing LED pin markers (`src/features/atlas/ShopWallAtlas3D.tsx`)
+- **DONE (Wave 3):** Live Option B VIN Diagnostic Counter terminal UI (`src/components/shop/ServiceCounterModal.tsx`) + `$0` Shareable Roast Card Canvas exporter (`src/features/roast-card/RoastCardModal.tsx`)
+- **Queued:** VIP Secret Stash rack signage & Motophile Partner Rack header plaque (once native dropship products launch)
+- **Queued (Wave 4):** In-shop Selfie Contest Winner Board frame + Photo Mode borders (`Dick`, `V`, `Scooter`)
+- **Queued (Wave 5):** Shop TV / Weekly Mad-Libs Skit Archive console prop
+- **Queued (Deferred Polish):** Customer 1–3 & Dyna Bro expansion poses, Cinderblock Chopper Easter egg
 
 ---
 
 ## 6. Ordered Execution Roadmap & Verification Gates
 
-### Wave 0 — Quick Wins, Referral Attribution & Deep-Link Router (Est. ~1 Day)
-- Update `src/components/shop/FlatRateMasterModal.tsx` outbound CTA to `https://app.motophileusa.com/sign-up?ref=ZUPH9BXM` and log `poster_click_flatratemaster` analytics events.
-- Implement App Router query parameter routing (`?dept=...`, `?drop=...`, `?ref=...`) in `src/app/page.tsx` and `src/store/useShopStore.ts` to auto-focus 3D zones, racks, or bays on entry.
-- **Verification Gate:** Deep links open directly onto targeted racks/bays/modals after passing the 18+ door; clicking the Flat Rate Master poster preserves `ref=ZUPH9BXM` and records the click event.
+### Wave 0 — Quick Wins, Referral Attribution & Deep-Link Router **(Completed / Live — Commit `bbab426`)**
+- Updated `src/components/shop/FlatRateMasterModal.tsx` outbound CTA to `https://app.motophileusa.com/sign-up?ref=ZUPH9BXM`, created `src/lib/analytics.ts` + `POST /api/events` collector into `public.analytics_events`.
+- Implemented `src/components/shop/ShopDeepLinkRouter.tsx` (`?dept=...`, `?drop=...`, `?rack=...`, `?bay=...`, `?ref=...`) inside `<Suspense>` in `src/app/page.tsx`, plus featured drop sorting/banners in `useShopStore.ts` and `ShopDrawer.tsx`.
 
-### Wave 1 — Migration `005`, Rack Split & Dick's Customer Memory (Est. ~2–3 Days)
-- Deploy `supabase/migrations/005_phase2_memory_atlas_and_racks.sql`.
-- Consolidate all 19 MotophileUSA Shopify items onto the single `motophile_partner` rack; launch native Hard R Cycles POD/dropship SKUs (`stripe_pod` / `stripe_diy`) across primary showroom racks and `vip_secret_stash`.
-- Wire `/api/webhooks/stripe` and `/api/repair-orders` to upsert `public.customer_memory`.
-- Hydrate `customer_memory` in `useShopStore` on SSO sign-in and wire Dick's 4 tiers, dynamic loiter timers (`60s` / standard / `10m`), and VIP Secret Stash unlock into zero-API `src/data/staffDialogue.ts`.
-- **Verification Gate:** Synthetic Stripe CLI `checkout.session.completed` test creates an order, updates `customer_memory`, and transitions test profiles cleanly from `Window Shopper` -> `First-Time Buyer` -> `VIP Supporter` (unlocking Secret Stash).
+### Wave 1 — Migration `005`, Customer Memory, Order Status & Delivered Greetings **(Completed / Live — Commits `bbab426`, `86598dd`)**
+- Applied `supabase/migrations/005_phase2_memory_atlas_and_racks.sql` in production and kept the 19 existing MotophileUSA items untouched until native dropship launch.
+- Built `src/features/npc-memory/` (`NEWCOMER`, `WINDOW_SHOPPER` 60s kick, `FIRST_TIME_BUYER`, `VIP_SUPPORTER` 10m grace + Secret Stash unlock, `REPEAT_DIAGNOSTIC`), wired server sync on Stripe webhooks, repair orders, `/api/memory/loiter`, `/api/profile`, and `/admin → Users` 1-click **Test Dick's Tier** presets.
+- Extended zero-API `staffDialogue.ts` and `ShopFloorHUD.tsx` with direct-site order/tracking queries (`"Where's my order?"` across Dick, V, and Scooter) plus personalized V & Dick walk-in greetings referencing delivered gear (paired with optional `006_orders_delivered_status.sql` + 5-day shipped fallback).
 
-### Wave 2 — Modular 3D Shop Wall Atlas ("Sign the Guest Book") (Est. ~3–4 Days)
-- Build standalone `src/features/atlas/` module and mount the cel-shaded 3D Shop Wall Atlas board in `src/components/canvas/DealershipProps3D.tsx` + `CAMERA_PRESETS.ATLAS`.
-- Build SSO-gated `POST /api/atlas/checkin` (Vercel IP headers -> `0.1`-degree grid fuzzing -> raw IP dropped immediately -> upserts `visitor_pins` with bike from `profiles.garage_bikes`) and `GET /api/atlas/pins`.
-- Build the zero-cost cartoon SVG/Canvas map overlay modal, first-stop Guest Book prompt, and `src/app/privacy/page.tsx` disclosure update.
-- **Verification Gate:** Unauthenticated visitors see a clean Google/Apple SSO sign-in prompt; signed-in visitors plot a ~11km fuzzed pin displaying their chosen visibility (`public`, `anonymized`, `hidden`) and saved bike.
+### Wave 2 — Modular 3D Shop Wall Atlas ("Sign the Guest Book") **(Completed / Live — Commit `bbab426`)**
+- Built standalone `src/features/atlas/` (`ShopWallAtlas3D.tsx`, `AtlasMapSvg.tsx`, `ShopWallAtlasModal.tsx`, `geo.ts`), mounted on the unobstructed Left Entry Wall with `CAMERA_PRESETS.ATLAS` and dismissible first-stop Guest Book prompt.
+- Built SSO-gated `POST /api/atlas/checkin` (`0.1`-degree ~11km grid fuzzing, zero raw IP persistence) and `GET /api/atlas/pins`, synced `social_handle` + `atlas_visibility` in `AccountModal.tsx` / `PATCH /api/profile`, and disclosed coarse location pins in `src/app/privacy/page.tsx`.
 
-### Wave 3 — Service Counter VIN Diagnostics (Phase 5) & Local Roast Cards (Est. ~3–5 Days)
-- Build the free **NHTSA vPIC API** VIN decoder + Year/Make/Model fallback inside `src/components/shop/ServiceCounterModal.tsx`, auto-saving bikes to `profiles.garage_bikes` and syncing `customer_memory`.
-- Connect strictly rate-limited, cached LLM troubleshooting diagnostics with mechanical safety disclaimer.
-- Build the One-Tap Shareable Q&A / Roast Card comic PNG exporter (zero-API local character templates + Web Share / download).
-- **Verification Gate:** Valid 17-character VIN decodes at `USD 0`, saves to garage, increments `diagnostic_count`, unlocks Dick's `Repeat Diagnostic` greeting, and exports a clean branded Roast Card PNG.
+### Wave 3 — Service Counter VIN Diagnostics (Option B) & Local Roast Cards **(Completed / Verified)**
+- Built modular `src/features/diagnostics/` (free **NHTSA vPIC API** VIN decoder + Year/Make/Model fallback + `$0` bike-aware Dick triage & bench checklist) and `POST /api/diagnostics`, syncing `profiles.garage_bikes` and `customer_memory` (`diagnostic_count`, `last_diagnosed_bike`, `last_symptom`).
+- Wired primary referral CTA into Flat Rate Master (`buildFlatRateMasterReferralUrl` with `ref=ZUPH9BXM` and optional `vin`) plus `diagnostic_decode` / `diagnostic_frm_handoff` analytics events.
+- Built modular `src/features/roast-card/` client-side HTML5 Canvas comic PNG exporter (`Square 1:1` & `Story 9:16`, Web Share API + PNG download + caption copy) accessible from both `StaffDialogueBox.tsx` and `ServiceCounterModal.tsx`.
+- **Verification Gate Passed:** Unit tests (`jiti`), `eslint .`, `tsc --noEmit`, `next build` (`29/29`), and local `127.0.0.1:3099` API probes all passed.
 
-### Wave 4 — Modular In-Site Selfie Contest Station (Est. ~4–5 Days)
-- Deploy `supabase/migrations/006_selfie_contests.sql` and build `src/features/selfie-contest/`.
+### Wave 4 — Modular In-Site Selfie Contest Station **(Next Up — Est. ~4–5 Days)**
+- Author and apply `supabase/migrations/007_selfie_contests.sql` (`selfie_contests`, `character_selfies`, `selfie_votes`, Storage `selfies` bucket + RLS) and build `src/features/selfie-contest/`.
 - Implement 3D Photo Mode composer with Scooter (open SSO), V (opt-in Exclusive Circle + witty roast), and Dick (verified buyer `total_orders >= 1` + merch roast) gates.
 - Add instant personal download/share, contest submission to `/admin` moderation queue, SSO upvoting gallery, and in-shop Winner Board.
 - **Verification Gate:** Non-buyers are gated and roasted by Dick; V enforces opt-in circle logic; `/admin` approval publishes entries to the gallery; 1 vote per SSO user is enforced; top entry highlights as Winner.
 
-### Wave 5 — Weekly Community Mad-Libs Skit Engine, `HardRToons` Sync & Official-API Social Pipeline (Est. ~5–7 Days)
-- Deploy `supabase/migrations/007_skit_madlibs.sql` and build `src/features/skit-madlibs/` (`/admin` template builder, SSO blank submission with Veo 3.1 policy filters, SSO voting, `EpisodeManifest` JSON exporter with community writer credits).
+### Wave 5 — Weekly Community Mad-Libs Skit Engine, `HardRToons` Sync & Official-API Social Pipeline **(Queued — Est. ~5–7 Days)**
+- Author and apply `supabase/migrations/008_skit_madlibs.sql` and build `src/features/skit-madlibs/` (`/admin` template builder, SSO blank submission with Veo 3.1 policy filters, SSO voting, `EpisodeManifest` JSON exporter with community writer credits).
 - Build `POST /api/admin/episodes` sync into `public.episode_knowledge`, wiring zero-API local keyword matching into `staffDialogue.ts` plus an in-shop **Shop TV / Skit Archive** modal.
 - Connect the 4 manually-created official social channels via official publishing APIs (or a single official multi-channel scheduler API) for weekly episode drops, cross-tags, `?dept=...&drop=...` deep links, and the weekly winning selfie shoutout.
 - **Verification Gate:** Test skit contest exports a valid `EpisodeManifest` matching `d:\HardRToons`; syncing an episode causes Dick, V, and Scooter to quote the community gag locally; official-API dry-run schedules multi-channel posts with working 3D shop deep links.
@@ -327,5 +327,5 @@ create table if not exists public.analytics_events (
 - **Supabase (Postgres, Auth SSO, Realtime, Storage):** Free (`USD 0/month`) -> Pro (`USD 25/month` as traffic and storage grow).
 - **Domain:** ~`USD 1/month`.
 - **Payments & Fulfillment:** Stripe `2.9% + USD 0.30` per native Hard R sale (Printful POD and Pirate Ship DIY labels carry `USD 0/month` fixed fees).
-- **Minimal LLM Diagnostics Budget:** ~`USD 0` to `USD 5/month` (NHTSA VIN decode, normal NPC staff chat, `customer_memory`, and `episode_knowledge` stay `USD 0/month`).
+- **Minimal LLM Diagnostics Budget:** `USD 0/month` under Option B (NHTSA VIN decode, Dick bench triage, client-side Canvas Roast Cards, normal NPC staff chat, `customer_memory`, and `episode_knowledge` stay `USD 0/month`; deep AI diagnostics & flat-rate labor guides hand off into Flat Rate Master).
 - **Official Social Publishing API (Optional):** `USD 0/month` via direct platform APIs or ~`USD 15` to `USD 25/month` for an official multi-channel scheduler API.

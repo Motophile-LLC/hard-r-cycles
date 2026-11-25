@@ -16,6 +16,7 @@ import { GameHUD } from '@/components/ui/GameHUD';
 import { RepairOrderModal } from '@/components/ui/RepairOrderModal';
 import { TutorialWalkthrough } from '@/components/ui/TutorialWalkthrough';
 import { ShopWallAtlasModal } from '@/features/atlas/ShopWallAtlasModal';
+import { RoastCardModal } from '@/features/roast-card/RoastCardModal';
 
 export default function HomePage() {
   return (
@@ -30,6 +31,7 @@ export default function HomePage() {
       <FlatRateMasterModal />
       <ShopWallAtlasModal />
       <AccountModal />
+      <RoastCardModal />
       <FrontDoorGateModal />
       <Suspense fallback={null}>
         <ShopDeepLinkRouter />

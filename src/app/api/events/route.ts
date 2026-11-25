@@ -11,6 +11,10 @@ const ALLOWED_EVENTS = new Set<ShopAnalyticsEventName>([
   'deep_link_landed',
   'atlas_open',
   'atlas_checkin',
+  'diagnostic_decode',
+  'diagnostic_frm_handoff',
+  'roast_card_open',
+  'roast_card_share',
 ]);
 
 type CleanMetadataValue = string | number | boolean | null;
