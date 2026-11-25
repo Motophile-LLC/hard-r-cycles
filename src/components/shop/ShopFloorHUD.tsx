@@ -351,7 +351,7 @@ export function ShopFloorHUD() {
           >
             <button
               type="button"
-              onClick={() => useShopStore.getState().nudgeCameraYaw(-0.18)}
+              onClick={() => useShopStore.getState().nudgeCameraYaw(-0.26)}
               aria-label="Orbit camera left"
               title="Orbit Left"
               className="cursor-pointer rounded-lg p-1.5 hover:bg-zinc-700"
@@ -392,7 +392,7 @@ export function ShopFloorHUD() {
             </button>
             <button
               type="button"
-              onClick={() => useShopStore.getState().nudgeCameraYaw(0.18)}
+              onClick={() => useShopStore.getState().nudgeCameraYaw(0.26)}
               aria-label="Orbit camera right"
               title="Orbit Right"
               className="cursor-pointer rounded-lg p-1.5 hover:bg-zinc-700"

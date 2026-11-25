@@ -82,7 +82,7 @@ function DealershipCameraRig() {
     const lz = preset.look[2];
 
     // Clamped Sims-style orbit & zoom offsets around focus point
-    const zoomScale = THREE.MathUtils.clamp(1 + storeState.cameraZoomDelta * 0.085, 0.72, 1.38);
+    const zoomScale = THREE.MathUtils.clamp(1 + storeState.cameraZoomDelta * 0.085, 0.62, 1.42);
     const yaw = storeState.cameraYawOffset;
     const dx = (baseX - lx) * zoomScale;
     const dy = (baseY - ly) * zoomScale;
@@ -404,7 +404,7 @@ function ApparelRack3D({
       </mesh>
 
       {rackAsset ? (
-        <mesh position={[0, rackHeight / 2, 0]} rotation={[0, 0.56, 0]}>
+        <mesh position={[0, rackHeight / 2, 0]} rotation={[0, 0.46, 0]}>
           <planeGeometry args={[rackWidth, rackHeight]} />
           <meshBasicMaterial
             key={rackAsset.texture.uuid}
@@ -578,7 +578,7 @@ function LiveServiceBay3D({
         </mesh>
 
         {bikeAsset ? (
-          <mesh position={[0, 0.44 + bikeH / 2, 0]} rotation={[0, 0.34, 0]}>
+          <mesh position={[0, 0.44 + bikeH / 2, 0]} rotation={[0, 0.5, 0]}>
             <planeGeometry args={[bikeW, bikeH]} />
             <meshBasicMaterial
               key={bikeAsset.texture.uuid}
@@ -1011,7 +1011,7 @@ export function DealershipScene() {
         }}
       >
         {frontDoorAsset ? (
-          <mesh position={[0, 2.32 / 2, 0]} rotation={[0, 0.28, 0]}>
+          <mesh position={[0, 2.32 / 2, 0]} rotation={[0, 0.12, 0]}>
             <planeGeometry args={[2.32 * frontDoorAsset.aspect, 2.32]} />
             <meshBasicMaterial
               key={frontDoorAsset.texture.uuid}
@@ -1088,7 +1088,7 @@ export function DealershipScene() {
 
         <group position={[-6.15, 0.12, -4.15]}>
           {stickerTableAsset ? (
-            <mesh position={[0, 1.12 / 2, 0]} rotation={[0, 0.56, 0]}>
+            <mesh position={[0, 1.12 / 2, 0]} rotation={[0, 0.46, 0]}>
               <planeGeometry args={[1.12 * stickerTableAsset.aspect, 1.12]} />
               <meshBasicMaterial
                 key={stickerTableAsset.texture.uuid}
@@ -1144,7 +1144,7 @@ export function DealershipScene() {
       >
         <group position={[-2.8, 0.12, 2.55]}>
           {partsShelfAsset ? (
-            <mesh position={[0, 2.18 / 2, 0]} rotation={[0, 0.54, 0]}>
+            <mesh position={[0, 2.18 / 2, 0]} rotation={[0, 0.46, 0]}>
               <planeGeometry args={[2.18 * partsShelfAsset.aspect, 2.18]} />
               <meshBasicMaterial
                 key={partsShelfAsset.texture.uuid}
@@ -1173,7 +1173,7 @@ export function DealershipScene() {
 
         <group position={[-4.45, 0.12, 2.95]}>
           {toolChestAsset ? (
-            <mesh position={[0, 1.38 / 2, 0]} rotation={[0, 0.52, 0]}>
+            <mesh position={[0, 1.38 / 2, 0]} rotation={[0, 0.46, 0]}>
               <planeGeometry args={[1.38 * toolChestAsset.aspect, 1.38]} />
               <meshBasicMaterial
                 key={toolChestAsset.texture.uuid}
@@ -1282,7 +1282,7 @@ export function DealershipScene() {
         }}
       >
         {counterAsset ? (
-          <mesh position={[0, 2.05 / 2, 0]} rotation={[0, 0.22, 0]} scale={[-1, 1, 1]}>
+          <mesh position={[0, 2.05 / 2, 0]} rotation={[0, 0.3, 0]} scale={[-1, 1, 1]}>
             <planeGeometry args={[2.05 * counterAsset.aspect, 2.05]} />
             <meshBasicMaterial
               key={counterAsset.texture.uuid}

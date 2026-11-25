@@ -63,7 +63,7 @@ export function UnifiedShopCanvas() {
         if (activePointersRef.current.size === 1) {
           const dx = e.clientX - lastDragXRef.current;
           if (Math.abs(dx) >= 2) {
-            useShopStore.getState().nudgeCameraYaw(-dx * 0.0028);
+            useShopStore.getState().nudgeCameraYaw(-dx * 0.0042);
             lastDragXRef.current = e.clientX;
           }
         }
