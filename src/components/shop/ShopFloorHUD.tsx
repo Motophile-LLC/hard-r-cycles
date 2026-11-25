@@ -23,12 +23,19 @@ import { pickNextAmbientCustomer } from '@/data/ambientCustomers';
 import { FALLBACK_CATALOG } from '@/data/fallbackCatalog';
 import {
   getDickLoiterBark,
+  getWalkInGreetingBarks,
   resolveCustomerMemoryState,
 } from '@/features/npc-memory/resolver';
 import { trackShopEvent } from '@/lib/analytics';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import { useShopStore } from '@/store/useShopStore';
-import type { AtlasPinDot, CustomerMemoryRecord, ShopProduct, UserProfile } from '@/types/shop';
+import type {
+  AtlasPinDot,
+  CustomerMemoryRecord,
+  CustomerOrderSummary,
+  ShopProduct,
+  UserProfile,
+} from '@/types/shop';
 import { withSpriteVersion } from '@/utils/spriteVersion';
 
 export function ShopFloorHUD() {
@@ -46,6 +53,8 @@ export function ShopFloorHUD() {
   const sfxEnabled = useShopStore((s) => s.sfxEnabled);
   const authAccessToken = useShopStore((s) => s.authAccessToken);
   const userProfile = useShopStore((s) => s.userProfile);
+  const customerMemory = useShopStore((s) => s.customerMemory);
+  const userOrders = useShopStore((s) => s.userOrders);
   const isAdminUser = useShopStore((s) => s.isAdminUser);
   const atlasTotalPins = useShopStore((s) => s.atlasTotalPins);
   const hasSignedAtlas = useShopStore((s) => s.hasSignedAtlas);
@@ -53,6 +62,7 @@ export function ShopFloorHUD() {
 
   const floorTickRef = useRef(0);
   const lastCustomerIdRef = useRef<string | undefined>(undefined);
+  const walkInGreetedKeyRef = useRef<string>('');
 
   // Sync Supabase Google/Apple SSO session + rider profile + unlocked promo rewards
   useEffect(() => {
@@ -75,6 +85,7 @@ export function ShopFloorHUD() {
             profile?: UserProfile;
             isAdmin?: boolean;
             customerMemory?: CustomerMemoryRecord | null;
+            orders?: CustomerOrderSummary[];
             rewards?: Array<{
               id: string;
               repair_order_id: string;
@@ -90,6 +101,7 @@ export function ShopFloorHUD() {
             json.profile ?? null,
             Boolean(json.isAdmin),
             json.customerMemory ?? null,
+            json.orders ?? [],
           );
           for (const rw of json.rewards ?? []) {
             if (!rw.redeemed) {
@@ -186,6 +198,38 @@ export function ShopFloorHUD() {
     };
   }, [authAccessToken]);
 
+  // Personalized walk-in greetings from V & Dick when a signed-in rider enters
+  useEffect(() => {
+    if (!isAgeVerified || viewMode !== 'FLOOR') return;
+    if (!userProfile && !customerMemory) {
+      walkInGreetedKeyRef.current = '';
+      return;
+    }
+
+    const latestOrder = userOrders[0];
+    const greetKey = `${userProfile?.id ?? 'anon'}:${customerMemory?.updated_at ?? ''}:${latestOrder?.id ?? ''}:${latestOrder?.status ?? ''}:${customerMemory?.last_purchased_item ?? ''}`;
+    if (walkInGreetedKeyRef.current === greetKey) return;
+
+    const memState = resolveCustomerMemoryState(
+      customerMemory,
+      userProfile,
+      userOrders,
+    );
+    const hasPersonalSignal =
+      Boolean(memState.latestDeliveredItem) ||
+      memState.hasActiveOpenOrder ||
+      memState.tier !== 'NEWCOMER';
+    if (!hasPersonalSignal && walkInGreetedKeyRef.current !== '') {
+      return;
+    }
+
+    walkInGreetedKeyRef.current = greetKey;
+    const barks = getWalkInGreetingBarks(memState);
+    const store = useShopStore.getState();
+    store.pushOverheadBark('v', barks.v, 6500);
+    store.pushOverheadBark('dick', barks.dick, 6500);
+  }, [isAgeVerified, viewMode, userProfile, customerMemory, userOrders]);
+
   // 30-second loitering banter + ambient customer chaos scheduler
   useEffect(() => {
     if (viewMode !== 'FLOOR' || !isAgeVerified) return;
@@ -206,6 +250,7 @@ export function ShopFloorHUD() {
       const memState = resolveCustomerMemoryState(
         store.customerMemory,
         store.userProfile,
+        store.userOrders,
       );
 
       if (nextIdle === memState.loiterWarningSeconds) {

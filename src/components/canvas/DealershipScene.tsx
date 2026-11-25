@@ -139,7 +139,11 @@ function AmbientCustomerMesh({ event }: { event: AmbientCustomerEvent }) {
 
   const handleInteract = () => {
     const store = useShopStore.getState();
-    const memState = resolveCustomerMemoryState(store.customerMemory, store.userProfile);
+    const memState = resolveCustomerMemoryState(
+      store.customerMemory,
+      store.userProfile,
+      store.userOrders,
+    );
     const reply = resolveStaffReply(
       event.staffResponder,
       event.suggestedQuery,
@@ -304,7 +308,11 @@ function StaffCharacterStandee({
 
   const handleChat = () => {
     const store = useShopStore.getState();
-    const memState = resolveCustomerMemoryState(store.customerMemory, store.userProfile);
+    const memState = resolveCustomerMemoryState(
+      store.customerMemory,
+      store.userProfile,
+      store.userOrders,
+    );
     store.setActiveDialogue(getStaffGreeting(staffId, store.products, memState));
   };
 

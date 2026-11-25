@@ -247,7 +247,7 @@ export async function PATCH(req: NextRequest) {
       memPatch = {
         total_orders: 1,
         lifetime_spend: 42.5,
-        last_purchased_item: 'Hard R Shop Tee',
+        last_purchased_item: 'Hard R Cycles Shop Patches',
         last_order_date: nowIso,
         updated_at: nowIso,
       };

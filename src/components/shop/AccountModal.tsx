@@ -20,21 +20,17 @@ import { useShopStore } from '@/store/useShopStore';
 import type {
   AtlasVisibility,
   CustomerMemoryRecord,
+  CustomerOrderStatus,
+  CustomerOrderSummary,
   GarageBike,
   ShippingAddress,
   UserProfile,
 } from '@/types/shop';
 
-interface ProfileOrderRow {
-  id: string;
+interface ProfileOrderRow extends CustomerOrderSummary {
   stripe_session_id: string;
-  total: number;
   currency: string;
-  fulfillment_mode: string;
-  status: string;
-  tracking_number: string | null;
-  items: Array<{ title: string; quantity: number; size?: string }>;
-  created_at: string;
+  status: CustomerOrderStatus;
 }
 
 interface ProfileRewardRow {
@@ -194,6 +190,7 @@ export function AccountModal() {
           json.profile,
           Boolean(json.isAdmin),
           json.customerMemory ?? store.customerMemory,
+          json.orders ?? store.userOrders,
         );
         applyProfileToForm(json.profile);
         setOrders(json.orders ?? []);

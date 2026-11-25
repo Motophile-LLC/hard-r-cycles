@@ -7,6 +7,7 @@ import type {
   CameraFocusZone,
   CartItem,
   CustomerMemoryRecord,
+  CustomerOrderSummary,
   LiveBayOccupant,
   OverheadBark,
   RackFilter,
@@ -82,6 +83,7 @@ export interface ShopStore {
   authAccessToken: string;
   userProfile: UserProfile | null;
   customerMemory: CustomerMemoryRecord | null;
+  userOrders: CustomerOrderSummary[];
   isAdminUser: boolean;
 
   highlightedDropHandle: string | null;
@@ -100,8 +102,10 @@ export interface ShopStore {
     profile: UserProfile | null,
     isAdmin: boolean,
     customerMemory?: CustomerMemoryRecord | null,
+    userOrders?: CustomerOrderSummary[],
   ) => void;
   setCustomerMemory: (memory: CustomerMemoryRecord | null) => void;
+  setUserOrders: (orders: CustomerOrderSummary[]) => void;
   setHighlightedDrop: (handle: string | null, fallbackLabel?: string | null) => void;
   setReferralSource: (ref: string | null) => void;
   setAtlasSummary: (dots: AtlasPinDot[], totalPins: number, hasSigned: boolean) => void;
@@ -164,6 +168,7 @@ export const useShopStore = create<ShopStore>()(
       authAccessToken: '',
       userProfile: null,
       customerMemory: null,
+      userOrders: [],
       isAdminUser: false,
 
       highlightedDropHandle: null,
@@ -179,15 +184,18 @@ export const useShopStore = create<ShopStore>()(
 
       setAccountModalOpen: (open) => set({ accountModalOpen: open, idleSeconds: 0 }),
 
-      setAuthState: (token, profile, isAdmin, customerMemory = null) =>
-        set({
+      setAuthState: (token, profile, isAdmin, customerMemory = null, userOrders) =>
+        set((state) => ({
           authAccessToken: token,
           userProfile: profile,
           isAdminUser: isAdmin,
           customerMemory: token ? customerMemory : null,
-        }),
+          userOrders: token ? (userOrders ?? state.userOrders) : [],
+        })),
 
       setCustomerMemory: (memory) => set({ customerMemory: memory }),
+
+      setUserOrders: (orders) => set({ userOrders: orders }),
 
       setHighlightedDrop: (handle, fallbackLabel = null) =>
         set({

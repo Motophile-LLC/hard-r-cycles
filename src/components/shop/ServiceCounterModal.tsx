@@ -145,6 +145,7 @@ export function ServiceCounterModal() {
               const memState = resolveCustomerMemoryState(
                 store.customerMemory,
                 store.userProfile,
+                store.userOrders,
               );
               store.setOpenDrawer(null);
               store.setActiveDialogue(getStaffGreeting('dick', store.products, memState));

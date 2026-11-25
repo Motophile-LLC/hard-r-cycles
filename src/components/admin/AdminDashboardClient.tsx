@@ -71,7 +71,7 @@ interface AdminOrderRow {
   total: number;
   currency: string;
   fulfillment_mode: 'diy' | 'pod' | 'hybrid';
-  status: 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'refunded';
+  status: 'paid' | 'fulfilling' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
   tracking_number: string | null;
   created_at: string;
 }
@@ -1172,6 +1172,7 @@ export function AdminDashboardClient() {
                         <option value="paid">paid</option>
                         <option value="fulfilling">fulfilling</option>
                         <option value="shipped">shipped</option>
+                        <option value="delivered">delivered</option>
                         <option value="cancelled">cancelled</option>
                         <option value="refunded">refunded</option>
                       </select>

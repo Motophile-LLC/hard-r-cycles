@@ -232,10 +232,11 @@ export function ShopDrawer() {
   const highlightedDropQuery = useShopStore((s) => s.highlightedDropQuery);
   const customerMemory = useShopStore((s) => s.customerMemory);
   const userProfile = useShopStore((s) => s.userProfile);
+  const userOrders = useShopStore((s) => s.userOrders);
 
   const memState = useMemo(
-    () => resolveCustomerMemoryState(customerMemory, userProfile),
-    [customerMemory, userProfile],
+    () => resolveCustomerMemoryState(customerMemory, userProfile, userOrders),
+    [customerMemory, userProfile, userOrders],
   );
 
   const [query, setQuery] = useState('');

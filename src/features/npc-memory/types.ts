@@ -5,6 +5,24 @@ export type CustomerTier =
   | 'VIP_SUPPORTER'
   | 'REPEAT_DIAGNOSTIC';
 
+export type CustomerOrderStatus =
+  | 'paid'
+  | 'fulfilling'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'refunded';
+
+export interface CustomerOrderSummary {
+  id: string;
+  status: CustomerOrderStatus;
+  tracking_number: string | null;
+  total: number;
+  fulfillment_mode: string;
+  items: Array<{ title: string; quantity: number; size?: string; color?: string }>;
+  created_at: string;
+}
+
 export interface CustomerMemoryRecord {
   user_id: string;
   total_orders: number;
@@ -32,4 +50,8 @@ export interface ResolvedNpcMemoryState {
   riderName: string;
   primaryBike: string | null;
   isSignedIn: boolean;
+  latestOrder: CustomerOrderSummary | null;
+  latestDeliveredOrder: CustomerOrderSummary | null;
+  latestDeliveredItem: string | null;
+  hasActiveOpenOrder: boolean;
 }

@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/adminAuth';
 import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 
-const VALID_STATUSES = ['paid', 'fulfilling', 'shipped', 'cancelled', 'refunded'] as const;
+const VALID_STATUSES = [
+  'paid',
+  'fulfilling',
+  'shipped',
+  'delivered',
+  'cancelled',
+  'refunded',
+] as const;
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdminAuth(req, { requireSecretClient: true });

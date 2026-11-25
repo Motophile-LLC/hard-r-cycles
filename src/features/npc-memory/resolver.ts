@@ -1,10 +1,31 @@
 import type {
   CustomerMemoryRecord,
+  CustomerOrderSummary,
   ResolvedNpcMemoryState,
 } from './types';
 
 export const VIP_ORDER_THRESHOLD = 3;
 export const VIP_SPEND_THRESHOLD = 150;
+
+const DELIVERED_SHIP_AGE_MS = 5 * 24 * 60 * 60 * 1000;
+
+const KNOWN_PLURAL_ITEMS = new Set([
+  'patches',
+  'stickers',
+  'gloves',
+  'socks',
+  'grips',
+  'pegs',
+  'boots',
+  'pants',
+  'shorts',
+  'packs',
+  'slaps',
+  'decals',
+  'tees',
+  'shirts',
+  'hoodies',
+]);
 
 export interface ProfileBikeSummary {
   year?: string;
@@ -20,9 +41,64 @@ export interface ProfileMemoryInput {
   garage_bikes?: ProfileBikeSummary[];
 }
 
+export function formatItemPhrase(rawTitle: string): {
+  determiner: 'that' | 'those';
+  label: string;
+} {
+  const trimmed = rawTitle.trim() || 'Hard R gear';
+  const stripped = trimmed
+    .replace(/^hard\s*r(?:\s+cycles)?\s+/i, '')
+    .trim();
+  const label = stripped.length >= 3 ? stripped : trimmed;
+  const lastWord = (label.split(/\s+/).pop() ?? '').toLowerCase();
+
+  const isPlural =
+    KNOWN_PLURAL_ITEMS.has(lastWord) ||
+    (lastWord.endsWith('s') &&
+      !lastWord.endsWith('ss') &&
+      !lastWord.endsWith('is') &&
+      !lastWord.endsWith('us'));
+
+  return {
+    determiner: isPlural ? 'those' : 'that',
+    label,
+  };
+}
+
+export function isOrderDelivered(order: CustomerOrderSummary): boolean {
+  if (order.status === 'delivered') return true;
+  if (order.status === 'shipped') {
+    const createdMs = Date.parse(order.created_at);
+    return (
+      Number.isFinite(createdMs) && Date.now() - createdMs >= DELIVERED_SHIP_AGE_MS
+    );
+  }
+  return false;
+}
+
+export function describeOrderStatus(order: CustomerOrderSummary): string {
+  switch (order.status) {
+    case 'paid':
+      return 'Paid — queued on bench';
+    case 'fulfilling':
+      return 'Fulfilling / Printing';
+    case 'shipped':
+      return isOrderDelivered(order) ? 'Delivered' : 'Shipped — on the road';
+    case 'delivered':
+      return 'Delivered';
+    case 'cancelled':
+      return 'Cancelled';
+    case 'refunded':
+      return 'Refunded';
+    default:
+      return String(order.status);
+  }
+}
+
 export function resolveCustomerMemoryState(
   memory: CustomerMemoryRecord | null,
   profile: ProfileMemoryInput | null,
+  orders: CustomerOrderSummary[] = [],
 ): ResolvedNpcMemoryState {
   const totalOrders = memory?.total_orders ?? 0;
   const lifetimeSpend = Number(memory?.lifetime_spend ?? 0);
@@ -54,6 +130,30 @@ export function resolveCustomerMemoryState(
 
   const isSignedIn = Boolean(profile || memory);
 
+  const orderList = Array.isArray(orders) ? orders : [];
+  const latestOrder = orderList[0] ?? null;
+  const hasActiveOpenOrder = Boolean(
+    latestOrder &&
+      (latestOrder.status === 'paid' ||
+        latestOrder.status === 'fulfilling' ||
+        (latestOrder.status === 'shipped' && !isOrderDelivered(latestOrder))),
+  );
+  const latestDeliveredOrder = orderList.find(isOrderDelivered) ?? null;
+  const deliveredTitleFromOrder =
+    latestDeliveredOrder?.items?.[0]?.title?.trim() || null;
+  const latestDeliveredItem =
+    deliveredTitleFromOrder ??
+    (!hasActiveOpenOrder && totalOrders >= 1 && memory?.last_purchased_item
+      ? memory.last_purchased_item.trim()
+      : null);
+
+  const orderContext = {
+    latestOrder,
+    latestDeliveredOrder,
+    latestDeliveredItem,
+    hasActiveOpenOrder,
+  };
+
   if (totalOrders >= VIP_ORDER_THRESHOLD || lifetimeSpend >= VIP_SPEND_THRESHOLD) {
     return {
       tier: 'VIP_SUPPORTER',
@@ -66,6 +166,7 @@ export function resolveCustomerMemoryState(
       riderName,
       primaryBike,
       isSignedIn,
+      ...orderContext,
     };
   }
 
@@ -81,6 +182,7 @@ export function resolveCustomerMemoryState(
       riderName,
       primaryBike,
       isSignedIn,
+      ...orderContext,
     };
   }
 
@@ -96,6 +198,7 @@ export function resolveCustomerMemoryState(
       riderName,
       primaryBike,
       isSignedIn,
+      ...orderContext,
     };
   }
 
@@ -111,6 +214,7 @@ export function resolveCustomerMemoryState(
       riderName,
       primaryBike,
       isSignedIn,
+      ...orderContext,
     };
   }
 
@@ -125,6 +229,49 @@ export function resolveCustomerMemoryState(
     riderName,
     primaryBike,
     isSignedIn,
+    ...orderContext,
+  };
+}
+
+export function getWalkInGreetingBarks(state: ResolvedNpcMemoryState): {
+  v: string;
+  dick: string;
+} {
+  if (state.latestDeliveredItem) {
+    const { determiner, label } = formatItemPhrase(state.latestDeliveredItem);
+    const verb = determiner === 'those' ? 'are' : 'is';
+    return {
+      v: `Welcome back, ${state.riderName}! How are you enjoying ${determiner} ${label}?`,
+      dick: `Hey ${state.riderName} — how ${verb} ${determiner} ${label} holding up on the road?`,
+    };
+  }
+
+  if (state.hasActiveOpenOrder && state.latestOrder) {
+    const itemLabel = state.latestOrder.items[0]?.title || 'your order';
+    const statusText = describeOrderStatus(state.latestOrder);
+    return {
+      v: `Hey ${state.riderName}! Your ${itemLabel} (${statusText}) is moving — ask any of us for tracking.`,
+      dick: `${state.riderName}, your ${itemLabel} is ${state.latestOrder.status.toUpperCase()}. Ask me or V if you want the status.`,
+    };
+  }
+
+  if (state.tier === 'VIP_SUPPORTER') {
+    return {
+      v: `Welcome back, VIP ${state.riderName}! Secret Stash is unlocked over here.`,
+      dick: `Well look who's back — Secret Stash is open for you, ${state.riderName}.`,
+    };
+  }
+
+  if (state.tier === 'WINDOW_SHOPPER') {
+    return {
+      v: `Welcome back, ${state.riderName}! Fresh gear on the racks — ignore Dick.`,
+      dick: `Visit #${state.visitCount}, ${state.riderName}? Don't touch anything expensive unless you're buying.`,
+    };
+  }
+
+  return {
+    v: 'Welcome in! Check the racks—ignore Dick.',
+    dick: "Don't touch anything expensive.",
   };
 }
 

@@ -4,6 +4,8 @@ import type {
 } from '@/features/atlas/types';
 import type {
   CustomerMemoryRecord,
+  CustomerOrderStatus,
+  CustomerOrderSummary,
   CustomerTier,
   ResolvedNpcMemoryState,
 } from '@/features/npc-memory/types';
@@ -12,6 +14,8 @@ export type {
   AtlasPinDot,
   AtlasVisibility,
   CustomerMemoryRecord,
+  CustomerOrderStatus,
+  CustomerOrderSummary,
   CustomerTier,
   ResolvedNpcMemoryState,
 };

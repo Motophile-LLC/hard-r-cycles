@@ -1,6 +1,8 @@
 import {
   VIP_ORDER_THRESHOLD,
   VIP_SPEND_THRESHOLD,
+  describeOrderStatus,
+  formatItemPhrase,
   resolveCustomerMemoryState,
 } from '@/features/npc-memory/resolver';
 import type {
@@ -40,21 +42,21 @@ const QUICK_REPLIES: Record<StaffId, { label: string; query: string }[]> = {
     { label: 'Show best sellers', query: 'best sellers shop humor' },
     { label: 'Got hoodies?', query: 'hoodie' },
     { label: 'How do sizes fit?', query: 'sizing fit fabric cotton' },
-    { label: 'Why is Dick grumpy?', query: 'dick attitude' },
+    { label: "Where's my order?", query: 'where is my order shipping tracking status' },
     { label: 'My shop status / VIP?', query: 'vip secret stash status tier' },
   ],
   dick: [
     { label: 'Shop policies', query: 'shipping returns refunds' },
     { label: 'Where is VIN Diag?', query: 'vin diagnostic repair' },
-    { label: 'Got Dyna tees?', query: 'dyna' },
+    { label: "Where's my order?", query: 'where is my order shipping tracking status' },
     { label: 'Flat Rate tips', query: 'flat rate panic game tips' },
     { label: 'My shop status / VIP?', query: 'vip secret stash status tier' },
   ],
   scooter: [
     { label: 'What should I buy?', query: 'recommend merch tee' },
+    { label: "Where's my order?", query: 'where is my order shipping tracking status' },
     { label: 'How do I play Bays?', query: 'game flat rate bay sockets' },
     { label: 'Drop any wrenches today?', query: 'wrench dropped' },
-    { label: 'Talkin Braap gear?', query: 'braap podcast' },
   ],
 };
 
@@ -104,6 +106,32 @@ export function getStaffGreeting(
   const tierBadge = mem.isSignedIn ? mem.tierBadge : undefined;
 
   if (staffId === 'v') {
+    if (mem.latestDeliveredItem) {
+      const { determiner, label } = formatItemPhrase(mem.latestDeliveredItem);
+      const vipDrops = products.filter(
+        (p) =>
+          p.active &&
+          (mem.hasVipAccess
+            ? p.rack_slot === 'vip_secret_stash' || p.rack_slot === 'hard_r_originals'
+            : p.rack_slot === 'rack_1_humor'),
+      );
+      return {
+        staffId,
+        portraitId: portrait('v-smirk'),
+        moodLabel: mem.hasVipAccess ? 'VIP LOUNGE' : 'WELCOME BACK',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Welcome back, ${mem.riderName}! How are you enjoying ${determiner} ${label}?${
+          mem.hasVipAccess
+            ? ' Your VIP Secret Stash tab is unlocked in my drawer too.'
+            : ' Tap the racks anytime or ask me about new drops.'
+        }`,
+        suggestedProducts: (vipDrops.length > 0 ? vipDrops : products).slice(0, 2),
+        quickReplies: QUICK_REPLIES.v,
+      };
+    }
+
     if (mem.hasVipAccess) {
       const vipDrops = products.filter(
         (p) =>
@@ -119,6 +147,21 @@ export function getStaffGreeting(
         speakerRole: meta.role,
         message: `Welcome back, ${mem.riderName}. You hit VIP status, so Dick finally unlocked the Secret Stash tab for you in my rack drawer.`,
         suggestedProducts: (vipDrops.length > 0 ? vipDrops : products).slice(0, 2),
+        quickReplies: QUICK_REPLIES.v,
+      };
+    }
+
+    if (mem.hasActiveOpenOrder && mem.latestOrder) {
+      const itemLabel = mem.latestOrder.items[0]?.title || 'your order';
+      return {
+        staffId,
+        portraitId: portrait('v-smirk'),
+        moodLabel: 'ORDER TRACKING',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Hey ${mem.riderName}! I see your direct Hard R order for ${itemLabel} is ${describeOrderStatus(mem.latestOrder)}. Ask me about your order anytime for tracking.`,
+        suggestedProducts: products.filter((p) => p.rack_slot === 'rack_1_humor').slice(0, 2),
         quickReplies: QUICK_REPLIES.v,
       };
     }
@@ -147,6 +190,12 @@ export function getStaffGreeting(
           p.active &&
           (p.rack_slot === 'vip_secret_stash' || p.rack_slot === 'hard_r_originals'),
       );
+      const deliveredFollowup = mem.latestDeliveredItem
+        ? (() => {
+            const { determiner, label } = formatItemPhrase(mem.latestDeliveredItem);
+            return ` How are you enjoying ${determiner} ${label}?`;
+          })()
+        : '';
       return {
         staffId,
         portraitId: portrait('dick-stoked'),
@@ -154,7 +203,7 @@ export function getStaffGreeting(
         tierBadge,
         speakerName: meta.name,
         speakerRole: meta.role,
-        message: `Well, well — ${mem.riderName} is back (${orders} order${orders === 1 ? '' : 's'}, $${spend.toFixed(2)} on the books). I chased the tire-kickers off your gear and unlocked the Secret Stash rack for you.`,
+        message: `Well, well — ${mem.riderName} is back (${orders} order${orders === 1 ? '' : 's'}, $${spend.toFixed(2)} on the books).${deliveredFollowup} I chased the tire-kickers off your gear and unlocked the Secret Stash rack for you.`,
         suggestedProducts: vipSuggestions.slice(0, 2),
         quickReplies: QUICK_REPLIES.dick,
       };
@@ -177,6 +226,40 @@ export function getStaffGreeting(
     }
 
     if (mem.tier === 'FIRST_TIME_BUYER') {
+      if (mem.latestDeliveredItem) {
+        const { determiner, label } = formatItemPhrase(mem.latestDeliveredItem);
+        return {
+          staffId,
+          portraitId: portrait('dick-smartass'),
+          moodLabel: 'PAID CUSTOMER',
+          tierBadge,
+          speakerName: meta.name,
+          speakerRole: meta.role,
+          message: `Oh, look who actually spent a buck — how are you enjoying ${determiner} ${label}, ${mem.riderName}? Hit ${VIP_ORDER_THRESHOLD} orders or $${VIP_SPEND_THRESHOLD} and I might unlock the VIP Secret Stash.`,
+          suggestedProducts: products
+            .filter((p) => p.active && p.rack_slot !== 'vip_secret_stash')
+            .slice(0, 2),
+          quickReplies: QUICK_REPLIES.dick,
+        };
+      }
+
+      if (mem.hasActiveOpenOrder && mem.latestOrder) {
+        const itemLabel = mem.latestOrder.items[0]?.title || 'your order';
+        return {
+          staffId,
+          portraitId: portrait('dick-smartass'),
+          moodLabel: 'ORDER ON BENCH',
+          tierBadge,
+          speakerName: meta.name,
+          speakerRole: meta.role,
+          message: `See your slip on my counter, ${mem.riderName} — ${itemLabel} is ${describeOrderStatus(mem.latestOrder)}. Ask me about your order if you want tracking.`,
+          suggestedProducts: products
+            .filter((p) => p.active && p.rack_slot !== 'vip_secret_stash')
+            .slice(0, 2),
+          quickReplies: QUICK_REPLIES.dick,
+        };
+      }
+
       const lastItem = mem.memory?.last_purchased_item || 'that shirt';
       return {
         staffId,
@@ -236,6 +319,10 @@ export function getStaffGreeting(
   }
 
   const bestShift = mem.memory?.flat_rate_high_score ?? 0;
+  const scooterOrderNote =
+    mem.hasActiveOpenOrder && mem.latestOrder
+      ? ` Oh! Also I saw your order for ${mem.latestOrder.items[0]?.title || 'gear'} on Dick's clipboard (${mem.latestOrder.status})!`
+      : '';
   return {
     staffId,
     portraitId: meta.defaultPortrait,
@@ -244,9 +331,10 @@ export function getStaffGreeting(
     speakerName: meta.name,
     speakerRole: meta.role,
     message:
-      bestShift >= 90
+      (bestShift >= 90
         ? `*POP!* Yo ${mem.riderName}! I saw you pull ${bestShift.toFixed(1)}% efficiency on the lifts! Wanna check out Talkin Braap hoodies or run Bay 3 again?`
-        : '*POP!* Oh hey! Dick told me not to touch the customers’ bikes until I find my 10mm socket. Wanna check out the Talkin Braap hoodies or go clock into Bay 3?',
+        : '*POP!* Oh hey! Dick told me not to touch the customers’ bikes until I find my 10mm socket. Wanna check out the Talkin Braap hoodies or go clock into Bay 3?') +
+      scooterOrderNote,
     suggestedProducts: products.filter((p) => p.rack_slot === 'wall_braap').slice(0, 2),
     quickReplies: QUICK_REPLIES.scooter,
   };
@@ -314,6 +402,111 @@ export function resolveStaffReply(
       speakerRole: meta.role,
       message: `${mem.riderName} (${mem.tierBadge}): ${orders}/${VIP_ORDER_THRESHOLD} orders, $${spend.toFixed(2)}/$${VIP_SPEND_THRESHOLD} spend, ${diags} diagnostic${diags === 1 ? '' : 's'}, best lift ${highScore.toFixed(1)}%, loiter warnings ${kicks}. VIP Secret Stash: ${mem.hasVipAccess ? 'UNLOCKED' : 'LOCKED'}.`,
       suggestedProducts: mem.hasVipAccess ? vipProducts.slice(0, 2) : [],
+      quickReplies: QUICK_REPLIES[staffId],
+    };
+  }
+
+  // -0.5. Personal Direct-Site Order & Shipping Status ($0 local lookup)
+  if (/my order|where.*order|\btrack\b|tracking|shipped|delivered|package|order status|shipping status/.test(q)) {
+    if (!mem.isSignedIn) {
+      return {
+        staffId,
+        portraitId:
+          staffId === 'v'
+            ? portrait('v-smirk')
+            : staffId === 'dick'
+              ? portrait('dick-glaring')
+              : portrait('scooter-pop'),
+        moodLabel: 'SSO REQUIRED',
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message:
+          staffId === 'dick'
+            ? 'Sign in with Google or Apple so I can pull your direct Hard R Cycles order slip. (MotophileUSA partner shirts bought through Shopify track in your Motophile confirmation email.)'
+            : staffId === 'v'
+              ? 'Sign in with Google or Apple in the top bar and I can check your direct Hard R Cycles orders and tracking right away. Partner orders on MotophileUSA stay on Motophile emails.'
+              : "Sign in with Google or Apple so I can check Dick's clipboard for your Hard R order! Motophile partner tees come from Motophile's Shopify emails.",
+        suggestedProducts: [],
+        quickReplies: QUICK_REPLIES[staffId],
+      };
+    }
+
+    if (mem.latestOrder) {
+      const ord = mem.latestOrder;
+      const statusText = describeOrderStatus(ord);
+      const itemList =
+        ord.items.map((i) => `${i.quantity}x ${i.title}`).join(', ') || 'Hard R Gear';
+      const trackingText = ord.tracking_number
+        ? ` Tracking #: ${ord.tracking_number}.`
+        : ' No tracking number posted yet.';
+
+      return {
+        staffId,
+        portraitId:
+          staffId === 'v'
+            ? portrait('v-smirk')
+            : staffId === 'dick'
+              ? portrait('dick-smartass')
+              : portrait('scooter-hyped'),
+        moodLabel: ord.status.toUpperCase(),
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message:
+          staffId === 'dick'
+            ? `Order slip for ${mem.riderName}: ${itemList} ($${Number(ord.total).toFixed(2)}) — ${statusText}.${trackingText}`
+            : staffId === 'v'
+              ? `Found your direct Hard R order, ${mem.riderName}: ${itemList} ($${Number(ord.total).toFixed(2)}) is marked ${statusText}.${trackingText}`
+              : `Ooh! Found your ticket on Dick's clipboard, ${mem.riderName}! ${itemList} is currently ${statusText}.${trackingText}`,
+        suggestedProducts: [],
+        quickReplies: QUICK_REPLIES[staffId],
+      };
+    }
+
+    if ((mem.memory?.total_orders ?? 0) >= 1 && mem.memory?.last_purchased_item) {
+      const { determiner, label } = formatItemPhrase(mem.memory.last_purchased_item);
+      return {
+        staffId,
+        portraitId:
+          staffId === 'v'
+            ? portrait('v-smirk')
+            : staffId === 'dick'
+              ? portrait('dick-smartass')
+              : portrait('scooter-pop'),
+        moodLabel: 'DELIVERED',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message:
+          staffId === 'dick'
+            ? `Got ${mem.memory.last_purchased_item} logged as delivered with zero open shipping holds, ${mem.riderName}. How are you enjoying ${determiner} ${label}?`
+            : staffId === 'v'
+              ? `Your ${mem.memory.last_purchased_item} shows delivered and complete! How are you enjoying ${determiner} ${label}, ${mem.riderName}?`
+              : `Dick's ledger says ${mem.memory.last_purchased_item} already showed up! How do you like ${determiner} ${label}?`,
+        suggestedProducts: [],
+        quickReplies: QUICK_REPLIES[staffId],
+      };
+    }
+
+    return {
+      staffId,
+      portraitId:
+        staffId === 'v'
+          ? portrait('v-eyeroll')
+          : staffId === 'dick'
+            ? portrait('dick-glaring')
+            : portrait('scooter-clueless'),
+      moodLabel: 'NO DIRECT ORDERS',
+      tierBadge,
+      speakerName: meta.name,
+      speakerRole: meta.role,
+      message:
+        staffId === 'dick'
+          ? `${mem.riderName}, there are zero direct Hard R Cycles orders on this ledger yet. Only gear checked out directly on hardrcycles.com shows up here — MotophileUSA Shopify partner tees stay in Motophile's email receipts.`
+          : staffId === 'v'
+            ? `Nothing on the direct Hard R Cycles ledger for you yet, ${mem.riderName}. Items bought through the MotophileUSA Shopify links keep their tracking inside Motophile's confirmation email.`
+            : `I looked under my workbench, ${mem.riderName}, and don't see a direct Hard R Cycles order yet — if you grabbed a Motophile partner shirt via Shopify, check Motophile's email for tracking!`,
+      suggestedProducts: [],
       quickReplies: QUICK_REPLIES[staffId],
     };
   }

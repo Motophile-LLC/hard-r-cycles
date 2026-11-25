@@ -12,6 +12,7 @@ export function StaffDialogueBox() {
   const products = useShopStore((s) => s.products);
   const customerMemory = useShopStore((s) => s.customerMemory);
   const userProfile = useShopStore((s) => s.userProfile);
+  const userOrders = useShopStore((s) => s.userOrders);
   const [input, setInput] = useState('');
   const composingRef = useRef(false);
 
@@ -31,7 +32,11 @@ export function StaffDialogueBox() {
   const submitQuestion = (text: string) => {
     const clean = text.trim();
     if (!clean) return;
-    const memState = resolveCustomerMemoryState(customerMemory, userProfile);
+    const memState = resolveCustomerMemoryState(
+      customerMemory,
+      userProfile,
+      userOrders,
+    );
     const reply = resolveStaffReply(activeDialogue.staffId, clean, products, memState);
     useShopStore.getState().setActiveDialogue(reply);
     setInput('');
