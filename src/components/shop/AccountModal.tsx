@@ -17,7 +17,13 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { SsoSignInButtons } from '@/components/auth/SsoSignInButtons';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import { useShopStore } from '@/store/useShopStore';
-import type { GarageBike, ShippingAddress, UserProfile } from '@/types/shop';
+import type {
+  AtlasVisibility,
+  CustomerMemoryRecord,
+  GarageBike,
+  ShippingAddress,
+  UserProfile,
+} from '@/types/shop';
 
 interface ProfileOrderRow {
   id: string;
@@ -68,6 +74,8 @@ export function AccountModal() {
   const [mechanicHandle, setMechanicHandle] = useState('');
   const [phone, setPhone] = useState('');
   const [shirtSize, setShirtSize] = useState('');
+  const [socialHandle, setSocialHandle] = useState('');
+  const [atlasVisibility, setAtlasVisibility] = useState<AtlasVisibility>('public');
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
     name: '',
@@ -97,6 +105,8 @@ export function AccountModal() {
     setMechanicHandle(p.mechanic_handle || '');
     setPhone(p.phone || '');
     setShirtSize(p.shirt_size || '');
+    setSocialHandle(p.social_handle || '');
+    setAtlasVisibility(p.atlas_visibility ?? 'public');
     setMarketingOptIn(Boolean(p.marketing_opt_in));
     setAddress({
       name: p.default_shipping_address?.name ?? p.full_name ?? '',
@@ -172,14 +182,19 @@ export function AccountModal() {
         const json = (await res.json()) as {
           profile?: UserProfile;
           isAdmin?: boolean;
+          customerMemory?: CustomerMemoryRecord | null;
           orders?: ProfileOrderRow[];
           rewards?: ProfileRewardRow[];
           repairOrders?: ProfileShiftRow[];
         };
         if (!active || !json.profile) return;
-        useShopStore
-          .getState()
-          .setAuthState(authAccessToken, json.profile, Boolean(json.isAdmin));
+        const store = useShopStore.getState();
+        store.setAuthState(
+          authAccessToken,
+          json.profile,
+          Boolean(json.isAdmin),
+          json.customerMemory ?? store.customerMemory,
+        );
         applyProfileToForm(json.profile);
         setOrders(json.orders ?? []);
         setRewards(json.rewards ?? []);
@@ -235,6 +250,8 @@ export function AccountModal() {
           mechanic_handle: mechanicHandle,
           phone,
           shirt_size: shirtSize,
+          social_handle: socialHandle,
+          atlas_visibility: atlasVisibility,
           marketing_opt_in: marketingOptIn,
           default_shipping_address: address,
           garage_bikes: bikes,
@@ -245,7 +262,13 @@ export function AccountModal() {
         setSaveError(json.error ?? 'Could not update profile.');
         return;
       }
-      useShopStore.getState().setAuthState(authAccessToken, json.profile, isAdminUser);
+      const store = useShopStore.getState();
+      store.setAuthState(
+        authAccessToken,
+        json.profile,
+        isAdminUser,
+        store.customerMemory,
+      );
       applyProfileToForm(json.profile);
       setSaveNotice('Saved your rider profile & garage!');
     } catch {
@@ -468,6 +491,37 @@ export function AccountModal() {
                             {sz}
                           </option>
                         ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="prof-social" className="mb-1 block text-xs font-black uppercase">
+                        Social Handle (Optional)
+                      </label>
+                      <input
+                        id="prof-social"
+                        type="text"
+                        maxLength={40}
+                        value={socialHandle}
+                        onChange={(e) => setSocialHandle(e.target.value)}
+                        placeholder="@yourhandle"
+                        className="min-h-12 w-full rounded-xl border-2 border-black bg-white px-3 text-base font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="prof-atlas-vis" className="mb-1 block text-xs font-black uppercase">
+                        Shop Wall Atlas Visibility
+                      </label>
+                      <select
+                        id="prof-atlas-vis"
+                        value={atlasVisibility}
+                        onChange={(e) =>
+                          setAtlasVisibility(e.target.value as AtlasVisibility)
+                        }
+                        className="min-h-12 w-full rounded-xl border-2 border-black bg-white px-3 text-base font-bold"
+                      >
+                        <option value="public">Public (Handle + City + Bike)</option>
+                        <option value="anonymized">City Only (&ldquo;Rider from [City]&rdquo;)</option>
+                        <option value="hidden">Hidden from Public Atlas</option>
                       </select>
                     </div>
                   </div>

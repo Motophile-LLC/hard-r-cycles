@@ -1,4 +1,14 @@
-import type { ShopProduct, StaffDialogueState, StaffId } from '@/types/shop';
+import {
+  VIP_ORDER_THRESHOLD,
+  VIP_SPEND_THRESHOLD,
+  resolveCustomerMemoryState,
+} from '@/features/npc-memory/resolver';
+import type {
+  ResolvedNpcMemoryState,
+  ShopProduct,
+  StaffDialogueState,
+  StaffId,
+} from '@/types/shop';
 import { withSpriteVersion } from '@/utils/spriteVersion';
 
 const portrait = (id: string): string =>
@@ -31,12 +41,14 @@ const QUICK_REPLIES: Record<StaffId, { label: string; query: string }[]> = {
     { label: 'Got hoodies?', query: 'hoodie' },
     { label: 'How do sizes fit?', query: 'sizing fit fabric cotton' },
     { label: 'Why is Dick grumpy?', query: 'dick attitude' },
+    { label: 'My shop status / VIP?', query: 'vip secret stash status tier' },
   ],
   dick: [
     { label: 'Shop policies', query: 'shipping returns refunds' },
     { label: 'Where is VIN Diag?', query: 'vin diagnostic repair' },
     { label: 'Got Dyna tees?', query: 'dyna' },
     { label: 'Flat Rate tips', query: 'flat rate panic game tips' },
+    { label: 'My shop status / VIP?', query: 'vip secret stash status tier' },
   ],
   scooter: [
     { label: 'What should I buy?', query: 'recommend merch tee' },
@@ -85,14 +97,37 @@ function findMatchingProducts(query: string, products: ShopProduct[]): ShopProdu
 export function getStaffGreeting(
   staffId: StaffId,
   products: ShopProduct[],
+  memoryState?: ResolvedNpcMemoryState,
 ): StaffDialogueState {
   const meta = STAFF_META[staffId];
+  const mem = memoryState ?? resolveCustomerMemoryState(null, null);
+  const tierBadge = mem.isSignedIn ? mem.tierBadge : undefined;
 
   if (staffId === 'v') {
+    if (mem.hasVipAccess) {
+      const vipDrops = products.filter(
+        (p) =>
+          p.active &&
+          (p.rack_slot === 'vip_secret_stash' || p.rack_slot === 'hard_r_originals'),
+      );
+      return {
+        staffId,
+        portraitId: portrait('v-smirk'),
+        moodLabel: 'VIP LOUNGE',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Welcome back, ${mem.riderName}. You hit VIP status, so Dick finally unlocked the Secret Stash tab for you in my rack drawer.`,
+        suggestedProducts: (vipDrops.length > 0 ? vipDrops : products).slice(0, 2),
+        quickReplies: QUICK_REPLIES.v,
+      };
+    }
+
     return {
       staffId,
       portraitId: meta.defaultPortrait,
       moodLabel: 'RUNNING THE FLOOR',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -103,40 +138,185 @@ export function getStaffGreeting(
   }
 
   if (staffId === 'dick') {
+    const orders = mem.memory?.total_orders ?? 0;
+    const spend = Number(mem.memory?.lifetime_spend ?? 0);
+
+    if (mem.tier === 'VIP_SUPPORTER') {
+      const vipSuggestions = products.filter(
+        (p) =>
+          p.active &&
+          (p.rack_slot === 'vip_secret_stash' || p.rack_slot === 'hard_r_originals'),
+      );
+      return {
+        staffId,
+        portraitId: portrait('dick-stoked'),
+        moodLabel: 'VIP RESPECT',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Well, well — ${mem.riderName} is back (${orders} order${orders === 1 ? '' : 's'}, $${spend.toFixed(2)} on the books). I chased the tire-kickers off your gear and unlocked the Secret Stash rack for you.`,
+        suggestedProducts: vipSuggestions.slice(0, 2),
+        quickReplies: QUICK_REPLIES.dick,
+      };
+    }
+
+    if (mem.tier === 'REPEAT_DIAGNOSTIC') {
+      const bike = mem.memory?.last_diagnosed_bike || mem.primaryBike || 'that bike';
+      const symptom = mem.memory?.last_symptom || 'that leak';
+      return {
+        staffId,
+        portraitId: portrait('dick-eyeroll'),
+        moodLabel: 'REPEAT DIAGNOSTIC',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Did you ever fix ${symptom} on your ${bike}, ${mem.riderName}, or are you just here to burn through more of my shop rags?`,
+        suggestedProducts: [],
+        quickReplies: QUICK_REPLIES.dick,
+      };
+    }
+
+    if (mem.tier === 'FIRST_TIME_BUYER') {
+      const lastItem = mem.memory?.last_purchased_item || 'that shirt';
+      return {
+        staffId,
+        portraitId: portrait('dick-smartass'),
+        moodLabel: 'PAID CUSTOMER',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Oh, look who actually spent a buck — how's that ${lastItem} treating you, ${mem.riderName}? Hit ${VIP_ORDER_THRESHOLD} orders or $${VIP_SPEND_THRESHOLD} and I might unlock the VIP Secret Stash.`,
+        suggestedProducts: products
+          .filter((p) => p.active && p.rack_slot !== 'vip_secret_stash')
+          .slice(0, 2),
+        quickReplies: QUICK_REPLIES.dick,
+      };
+    }
+
+    if (mem.tier === 'WINDOW_SHOPPER') {
+      const kicks = mem.memory?.loiter_kick_count ?? 0;
+      const kickJab =
+        kicks > 0
+          ? ` Plus I already yelled at you ${kicks} time${kicks === 1 ? '' : 's'} for loitering.`
+          : '';
+      return {
+        staffId,
+        portraitId: portrait('dick-furious'),
+        moodLabel: 'WINDOW SHOPPER',
+        tierBadge,
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message: `Visit #${mem.visitCount} and still $0 on the register, ${mem.riderName}? This ain't a museum — buy a shirt or beat it before I hand you a broom.${kickJab}`,
+        suggestedProducts: products
+          .filter((p) => p.active && p.rack_slot !== 'vip_secret_stash')
+          .slice(0, 2),
+        quickReplies: QUICK_REPLIES.dick,
+      };
+    }
+
+    const bikeNote = mem.primaryBike
+      ? ` Saw your ${mem.primaryBike} in the garage log.`
+      : '';
+    const shiftNote =
+      (mem.memory?.flat_rate_high_score ?? 0) >= 100
+        ? ` Not half bad pulling ${mem.memory?.flat_rate_high_score.toFixed(1)}% in the bays either.`
+        : '';
+
     return {
       staffId,
       portraitId: meta.defaultPortrait,
       moodLabel: 'GLARING AT COUNTER',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
-      message:
-        'Read the signs behind me before opening your mouth. Cash or card via checkout, no refunds if you bleed oil on it, and if you want to prove you know which end of a torque wrench to hold, click a Service Bay.',
+      message: `Read the signs behind me before opening your mouth. Cash or card via checkout, no refunds if you bleed oil on it, and if you want to prove you know which end of a torque wrench to hold, click a Service Bay.${bikeNote}${shiftNote}`,
       suggestedProducts: [],
       quickReplies: QUICK_REPLIES.dick,
     };
   }
 
+  const bestShift = mem.memory?.flat_rate_high_score ?? 0;
   return {
     staffId,
     portraitId: meta.defaultPortrait,
     moodLabel: 'CHEWING BUBBLEGUM',
+    tierBadge,
     speakerName: meta.name,
     speakerRole: meta.role,
     message:
-      '*POP!* Oh hey! Dick told me not to touch the customers’ bikes until I find my 10mm socket. Wanna check out the Talkin Braap hoodies or go clock into Bay 3?',
-      suggestedProducts: products.filter((p) => p.rack_slot === 'wall_braap').slice(0, 2),
-      quickReplies: QUICK_REPLIES.scooter,
-    };
+      bestShift >= 90
+        ? `*POP!* Yo ${mem.riderName}! I saw you pull ${bestShift.toFixed(1)}% efficiency on the lifts! Wanna check out Talkin Braap hoodies or run Bay 3 again?`
+        : '*POP!* Oh hey! Dick told me not to touch the customers’ bikes until I find my 10mm socket. Wanna check out the Talkin Braap hoodies or go clock into Bay 3?',
+    suggestedProducts: products.filter((p) => p.rack_slot === 'wall_braap').slice(0, 2),
+    quickReplies: QUICK_REPLIES.scooter,
+  };
 }
 
 export function resolveStaffReply(
   staffId: StaffId,
   rawQuery: string,
   products: ShopProduct[],
+  memoryState?: ResolvedNpcMemoryState,
 ): StaffDialogueState {
   const q = rawQuery.trim().toLowerCase();
   const meta = STAFF_META[staffId];
-  const matched = findMatchingProducts(q, products);
+  const mem = memoryState ?? resolveCustomerMemoryState(null, null);
+  const tierBadge = mem.isSignedIn ? mem.tierBadge : undefined;
+  const visibleProducts = mem.hasVipAccess
+    ? products
+    : products.filter((p) => p.rack_slot !== 'vip_secret_stash');
+  const matched = findMatchingProducts(q, visibleProducts);
+
+  // -1. Shop Status / VIP Memory check ($0 local lookup)
+  if (/\bvip\b|secret stash|shop status|my status|my tier|memory|spend|loyal/.test(q)) {
+    const vipProducts = visibleProducts.filter((p) => p.rack_slot === 'vip_secret_stash');
+    if (!mem.isSignedIn) {
+      return {
+        staffId,
+        portraitId:
+          staffId === 'v'
+            ? portrait('v-smirk')
+            : staffId === 'dick'
+              ? portrait('dick-glaring')
+              : portrait('scooter-pop'),
+        moodLabel: 'SSO REQUIRED',
+        speakerName: meta.name,
+        speakerRole: meta.role,
+        message:
+          staffId === 'dick'
+            ? `Sign in with Google or Apple first — I don't keep tabs on ghosts. Hit ${VIP_ORDER_THRESHOLD} orders or $${VIP_SPEND_THRESHOLD} spend and you unlock my Secret Stash rack and 10-minute idle grace.`
+            : staffId === 'v'
+              ? `Sign in with Google or Apple in the top bar so Dick remembers your orders, garage bikes, and Flat Rate high scores. ${VIP_ORDER_THRESHOLD} orders or $${VIP_SPEND_THRESHOLD} unlocks VIP Secret Stash.`
+              : `Sign in with Google or Apple! Then Dick tracks your orders, diagnostics, and Flat Rate Bay scores toward the VIP Secret Stash!`,
+        suggestedProducts: [],
+        quickReplies: QUICK_REPLIES[staffId],
+      };
+    }
+
+    const orders = mem.memory?.total_orders ?? 0;
+    const spend = Number(mem.memory?.lifetime_spend ?? 0);
+    const diags = mem.memory?.diagnostic_count ?? 0;
+    const highScore = mem.memory?.flat_rate_high_score ?? 0;
+    const kicks = mem.memory?.loiter_kick_count ?? 0;
+
+    return {
+      staffId,
+      portraitId: mem.hasVipAccess
+        ? staffId === 'v'
+          ? portrait('v-smirk')
+          : portrait('dick-stoked')
+        : staffId === 'dick'
+          ? portrait('dick-smartass')
+          : meta.defaultPortrait,
+      moodLabel: mem.hasVipAccess ? 'VIP UNLOCKED' : mem.tierBadge.toUpperCase(),
+      tierBadge,
+      speakerName: meta.name,
+      speakerRole: meta.role,
+      message: `${mem.riderName} (${mem.tierBadge}): ${orders}/${VIP_ORDER_THRESHOLD} orders, $${spend.toFixed(2)}/$${VIP_SPEND_THRESHOLD} spend, ${diags} diagnostic${diags === 1 ? '' : 's'}, best lift ${highScore.toFixed(1)}%, loiter warnings ${kicks}. VIP Secret Stash: ${mem.hasVipAccess ? 'UNLOCKED' : 'LOCKED'}.`,
+      suggestedProducts: mem.hasVipAccess ? vipProducts.slice(0, 2) : [],
+      quickReplies: QUICK_REPLIES[staffId],
+    };
+  }
 
   // 0. Flat Rate Panic discount codes / Cart rewards
   if (/discount|coupon|promo|reward|cart|bag|code|free shipping/.test(q)) {
@@ -150,6 +330,7 @@ export function resolveStaffReply(
             ? portrait('dick-stoked')
             : portrait('scooter-hyped'),
       moodLabel: 'SHIFT REWARDS',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -170,6 +351,7 @@ export function resolveStaffReply(
         staffId,
         portraitId: portrait('v-smirk'),
         moodLabel: 'BUY IT.',
+        tierBadge,
         speakerName: meta.name,
         speakerRole: meta.role,
         message:
@@ -183,6 +365,7 @@ export function resolveStaffReply(
         staffId,
         portraitId: portrait('dick-smartass'),
         moodLabel: 'STRAIGHT TALK',
+        tierBadge,
         speakerName: meta.name,
         speakerRole: meta.role,
         message:
@@ -195,6 +378,7 @@ export function resolveStaffReply(
       staffId,
       portraitId: portrait('scooter-clueless'),
       moodLabel: 'CLUELESS',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -215,6 +399,7 @@ export function resolveStaffReply(
             ? portrait('dick-furious')
             : portrait('scooter-duh'),
       moodLabel: staffId === 'dick' ? 'READ THE SIGN!' : 'STORE POLICY',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -239,6 +424,7 @@ export function resolveStaffReply(
             ? portrait('v-eyeroll')
             : portrait('scooter-whoa'),
       moodLabel: 'SERVICE COUNTER',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -263,6 +449,7 @@ export function resolveStaffReply(
             ? portrait('dick-smartass')
             : portrait('scooter-hyped'),
       moodLabel: 'SERVICE BAYS LIVE',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -283,6 +470,7 @@ export function resolveStaffReply(
         staffId,
         portraitId: portrait('v-eyeroll'),
         moodLabel: 'REALLY, DICK?!',
+        tierBadge,
         speakerName: meta.name,
         speakerRole: meta.role,
         message:
@@ -296,6 +484,7 @@ export function resolveStaffReply(
         staffId,
         portraitId: portrait('scooter-busted'),
         moodLabel: 'OOPS...',
+        tierBadge,
         speakerName: meta.name,
         speakerRole: meta.role,
         message:
@@ -308,6 +497,7 @@ export function resolveStaffReply(
       staffId,
       portraitId: portrait('dick-wtf'),
       moodLabel: 'WTF?!',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -328,6 +518,7 @@ export function resolveStaffReply(
             ? portrait('dick-smartass')
             : portrait('scooter-hyped'),
       moodLabel: staffId === 'v' ? 'BUY IT.' : 'FOUND ON RACK',
+      tierBadge,
       speakerName: meta.name,
       speakerRole: meta.role,
       message:
@@ -364,6 +555,7 @@ export function resolveStaffReply(
     staffId,
     portraitId: d.portrait,
     moodLabel: d.mood,
+    tierBadge,
     speakerName: meta.name,
     speakerRole: meta.role,
     message: d.line,

@@ -3,11 +3,13 @@
 import {
   CheckCircle2,
   ExternalLink,
+  Lock,
   Minus,
   Plus,
   Search,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Tag,
   Trash2,
   Truck,
@@ -17,6 +19,11 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  VIP_ORDER_THRESHOLD,
+  VIP_SPEND_THRESHOLD,
+  resolveCustomerMemoryState,
+} from '@/features/npc-memory/resolver';
 import { useShopStore } from '@/store/useShopStore';
 import type { RackFilter, ShopProduct } from '@/types/shop';
 import { withSpriteVersion } from '@/utils/spriteVersion';
@@ -24,6 +31,7 @@ import { withSpriteVersion } from '@/utils/spriteVersion';
 const RACK_TABS: { id: RackFilter; label: string }[] = [
   { id: 'ALL', label: 'All Merch' },
   { id: 'hard_r_originals', label: 'Hard R Originals' },
+  { id: 'vip_secret_stash', label: 'VIP Stash' },
   { id: 'rack_1_humor', label: 'Rack 1: Humor' },
   { id: 'rack_2_definition', label: 'Rack 2: Definition' },
   { id: 'wall_braap', label: 'Wall: Braap' },
@@ -32,7 +40,13 @@ const RACK_TABS: { id: RackFilter; label: string }[] = [
 const FREE_SHIPPING_THRESHOLD = 125;
 const FLAT_SHIPPING_COST = 9.95;
 
-function ProductCatalogCard({ product }: { product: ShopProduct }) {
+function ProductCatalogCard({
+  product,
+  featured = false,
+}: {
+  product: ShopProduct;
+  featured?: boolean;
+}) {
   const addToCart = useShopStore((s) => s.addToCart);
   const defaultSize = product.sizes[0] ?? 'One Size';
   const defaultColor = product.colors[0] ?? 'Standard';
@@ -57,13 +71,24 @@ function ProductCatalogCard({ product }: { product: ShopProduct }) {
   };
 
   return (
-    <article className="flex gap-3 rounded-2xl border-3 border-black bg-white p-3 shadow-[4px_4px_0px_#000]">
+    <article
+      className={`flex gap-3 rounded-2xl border-3 p-3 shadow-[4px_4px_0px_#000] ${
+        featured
+          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-400'
+          : 'border-black bg-white'
+      }`}
+    >
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border-2 border-black bg-zinc-100">
         <Image src={product.image_url} alt={product.title} fill className="object-cover" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-1.5">
           <div className="flex flex-wrap items-center gap-1">
+            {featured ? (
+              <span className="rounded border border-black bg-orange-500 px-1.5 py-0.5 text-[10px] font-black uppercase text-white">
+                Featured Drop
+              </span>
+            ) : null}
             <span className="rounded border border-black bg-amber-200 px-1.5 py-0.5 text-[10px] font-black uppercase text-black">
               {product.collection}
             </span>
@@ -203,6 +228,15 @@ export function ShopDrawer() {
   const cart = useShopStore((s) => s.cart);
   const appliedPromoCode = useShopStore((s) => s.appliedPromoCode);
   const unlockedRewards = useShopStore((s) => s.unlockedRewards);
+  const highlightedDropHandle = useShopStore((s) => s.highlightedDropHandle);
+  const highlightedDropQuery = useShopStore((s) => s.highlightedDropQuery);
+  const customerMemory = useShopStore((s) => s.customerMemory);
+  const userProfile = useShopStore((s) => s.userProfile);
+
+  const memState = useMemo(
+    () => resolveCustomerMemoryState(customerMemory, userProfile),
+    [customerMemory, userProfile],
+  );
 
   const [query, setQuery] = useState('');
   const [checkoutBusy, setCheckoutBusy] = useState(false);
@@ -271,8 +305,11 @@ export function ShopDrawer() {
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return products.filter((p) => {
+    const list = products.filter((p) => {
       if (!p.active) return false;
+      if (p.rack_slot === 'vip_secret_stash' && !memState.hasVipAccess) {
+        return false;
+      }
       if (openDrawer === 'PARTS' && activeRackFilter === 'ALL') {
         return p.department === 'PARTS' || p.rack_slot === 'hard_r_originals';
       }
@@ -286,7 +323,28 @@ export function ShopDrawer() {
         p.tags.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [products, openDrawer, activeRackFilter, query]);
+
+    if (highlightedDropHandle) {
+      return [...list].sort((a, b) => {
+        if (a.handle === highlightedDropHandle && b.handle !== highlightedDropHandle) {
+          return -1;
+        }
+        if (b.handle === highlightedDropHandle && a.handle !== highlightedDropHandle) {
+          return 1;
+        }
+        return 0;
+      });
+    }
+
+    return list;
+  }, [
+    products,
+    openDrawer,
+    activeRackFilter,
+    query,
+    highlightedDropHandle,
+    memState.hasVipAccess,
+  ]);
 
   const handleClose = () => {
     useShopStore.getState().setOpenDrawer(null);
@@ -678,7 +736,85 @@ export function ShopDrawer() {
 
             {/* Product List */}
             <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
-              {openDrawer === 'PARTS' && activeRackFilter === 'ALL' ? (
+              {activeRackFilter === 'vip_secret_stash' && memState.hasVipAccess ? (
+                <div className="flex items-center gap-2.5 rounded-2xl border-3 border-black bg-amber-300 px-3.5 py-2.5 text-xs font-black text-black shadow-[3px_3px_0px_#000]">
+                  <Sparkles className="h-4 w-4 shrink-0 text-black" aria-hidden="true" />
+                  <span>
+                    VIP Secret Stash Unlocked for {memState.riderName}! Dick kept the good stuff off the public floor.
+                  </span>
+                </div>
+              ) : null}
+
+              {highlightedDropQuery && !highlightedDropHandle ? (
+                <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-black bg-amber-200 px-3 py-2 text-xs font-bold text-black shadow-[3px_3px_0px_#000]">
+                  <span>
+                    Drop Link: <strong>{highlightedDropQuery}</strong> — Browse the latest drops &amp; stocked gear below.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => useShopStore.getState().setHighlightedDrop(null, null)}
+                    aria-label="Dismiss drop notice"
+                    className="shrink-0 cursor-pointer rounded-lg border border-black bg-white p-1 text-black hover:bg-zinc-200"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
+
+              {activeRackFilter === 'vip_secret_stash' && !memState.hasVipAccess ? (
+                <div className="rounded-2xl border-3 border-black bg-white p-4 shadow-[4px_4px_0px_#000]">
+                  <div className="flex items-start gap-3">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-black bg-amber-200">
+                      <Image
+                        src={withSpriteVersion('/sprites/portraits/dick-glaring.png')}
+                        alt="Dick guarding VIP Secret Stash"
+                        fill
+                        className="object-contain object-top pt-0.5"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-xs font-black uppercase text-red-700">
+                        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>VIP Secret Stash Locked</span>
+                      </div>
+                      <p className="mt-1 text-xs font-bold leading-snug text-zinc-800">
+                        {memState.isSignedIn
+                          ? `Dick locks the Secret Stash behind ${VIP_ORDER_THRESHOLD} verified Hard R orders or $${VIP_SPEND_THRESHOLD} total spend.`
+                          : `Sign in with Google or Apple so Dick can track your orders and unlock the VIP Secret Stash.`}
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] font-black uppercase">
+                        <span className="rounded-lg border border-black bg-amber-100 px-2 py-1">
+                          Orders: {memState.memory?.total_orders ?? 0} / {VIP_ORDER_THRESHOLD}
+                        </span>
+                        <span className="rounded-lg border border-black bg-amber-100 px-2 py-1">
+                          Spend: ${Number(memState.memory?.lifetime_spend ?? 0).toFixed(2)} / ${VIP_SPEND_THRESHOLD}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {!memState.isSignedIn ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          useShopStore.getState().setOpenDrawer(null);
+                          useShopStore.getState().setAccountModalOpen(true);
+                        }}
+                        className="flex-1 cursor-pointer rounded-xl border-3 border-black bg-emerald-400 px-4 py-2 text-xs font-black uppercase text-black shadow-[3px_3px_0px_#000] hover:bg-emerald-300"
+                      >
+                        Sign In with Google / Apple
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => useShopStore.getState().setActiveRackFilter('ALL')}
+                      className="flex-1 cursor-pointer rounded-xl border-3 border-black bg-amber-300 px-4 py-2 text-xs font-black uppercase text-black shadow-[3px_3px_0px_#000] hover:bg-amber-200"
+                    >
+                      Browse Open Racks
+                    </button>
+                  </div>
+                </div>
+              ) : openDrawer === 'PARTS' && activeRackFilter === 'ALL' ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 rounded-2xl border-3 border-black bg-white p-3.5 shadow-[4px_4px_0px_#000]">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-black bg-amber-100">
@@ -699,7 +835,11 @@ export function ShopDrawer() {
                     </div>
                   </div>
                   {filteredProducts.map((product) => (
-                    <ProductCatalogCard key={product.handle} product={product} />
+                    <ProductCatalogCard
+                      key={product.handle}
+                      product={product}
+                      featured={product.handle === highlightedDropHandle}
+                    />
                   ))}
                   {filteredProducts.length === 0 ? (
                     <div className="rounded-2xl border-3 border-black bg-white p-4 text-center text-xs font-bold text-zinc-600">
@@ -716,13 +856,19 @@ export function ShopDrawer() {
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="rounded-2xl border-3 border-black bg-white p-6 text-center text-sm font-bold text-zinc-600">
-                  {activeRackFilter === 'hard_r_originals' && !query
-                    ? 'No Hard R Originals stocked yet—add your first direct Stripe item in the Admin Dashboard!'
-                    : `No merch matched "${query || activeRackFilter}". Clear the filter to browse all ${products.length} items.`}
+                  {activeRackFilter === 'vip_secret_stash' && !query
+                    ? 'VIP Secret Stash is unlocked — exclusive Hard R VIP drops will appear right here as soon as they hit the rack.'
+                    : activeRackFilter === 'hard_r_originals' && !query
+                      ? 'No Hard R Originals stocked yet—add your first direct Stripe item in the Admin Dashboard!'
+                      : `No merch matched "${query || activeRackFilter}". Clear the filter to browse all ${products.length} items.`}
                 </div>
               ) : (
                 filteredProducts.map((product) => (
-                  <ProductCatalogCard key={product.handle} product={product} />
+                  <ProductCatalogCard
+                    key={product.handle}
+                    product={product}
+                    featured={product.handle === highlightedDropHandle}
+                  />
                 ))
               )}
             </div>

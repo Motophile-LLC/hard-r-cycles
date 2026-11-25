@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
+import { recordOrderInCustomerMemory } from '@/features/npc-memory/serverSync';
 import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 import { getStripeClient } from '@/lib/stripeServer';
 import {
@@ -160,6 +161,18 @@ export async function POST(req: NextRequest) {
           })
           .eq('id', userIdMeta);
       }
+    }
+
+    // Sync paid native checkout to Dick's persistent customer_memory (pre-005 safe)
+    try {
+      await recordOrderInCustomerMemory(adminDb, {
+        userId: userIdMeta,
+        customerEmail,
+        orderTotal: total,
+        items,
+      });
+    } catch (memErr) {
+      console.warn('[webhook/stripe] customer_memory sync failed:', memErr);
     }
 
     const dispatchResult = await dispatchFulfillment({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { FALLBACK_LEADERBOARD } from '@/data/shiftJobs';
+import { recordShiftInCustomerMemory } from '@/features/npc-memory/serverSync';
 import { getAuthenticatedUser } from '@/lib/adminAuth';
 import { getSupabaseAdminClient } from '@/lib/supabaseAdmin';
 import { getSupabaseClient } from '@/lib/supabaseClient';
@@ -170,6 +171,20 @@ export async function POST(request: Request) {
         },
         { status: 201 },
       );
+    }
+
+    if (authenticatedUserId) {
+      const adminDb = getSupabaseAdminClient();
+      if (adminDb) {
+        try {
+          await recordShiftInCustomerMemory(adminDb, {
+            userId: authenticatedUserId,
+            efficiencyRating,
+          });
+        } catch (memErr) {
+          console.warn('[repair-orders] customer_memory sync failed:', memErr);
+        }
+      }
     }
 
     return NextResponse.json(

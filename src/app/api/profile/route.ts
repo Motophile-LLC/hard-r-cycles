@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureCustomerMemoryRow } from '@/features/npc-memory/serverSync';
 import {
   getAuthenticatedUser,
   isSuperAdminEmail,
@@ -120,6 +121,14 @@ async function ensureAndSyncProfile(
     updatePatch.sign_in_count = Number(existing.sign_in_count || 1) + 1;
   }
 
+  const lastSeenMs =
+    typeof existing.last_seen_at === 'string' ? Date.parse(existing.last_seen_at) : NaN;
+  const isNewSessionWindow =
+    Number.isFinite(lastSeenMs) && Date.now() - lastSeenMs > 15 * 60 * 1000;
+  if ('visit_count' in existing && (bumpSignIn || isNewSessionWindow)) {
+    updatePatch.visit_count = Number(existing.visit_count || 1) + 1;
+  }
+
   const { data: updated } = await adminDb
     .from('profiles')
     .update(updatePatch)
@@ -171,7 +180,7 @@ export async function GET(req: NextRequest) {
     ? ordersQuery.or(`user_id.eq.${user.userId},customer_email.eq."${escapedEmail}"`)
     : ordersQuery.eq('user_id', user.userId);
 
-  const [ordersRes, rewardsRes, shiftsRes] = await Promise.all([
+  const [ordersRes, rewardsRes, shiftsRes, customerMemory] = await Promise.all([
     scopedOrdersQuery
       .order('created_at', { ascending: false })
       .limit(25),
@@ -191,12 +200,14 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.userId)
       .order('created_at', { ascending: false })
       .limit(25),
+    ensureCustomerMemoryRow(adminDb, user.userId),
   ]);
 
   return NextResponse.json({
     profile,
     isAdmin,
     isSuperAdmin,
+    customerMemory,
     orders: ordersRes.data ?? [],
     rewards: rewardsRes.data ?? [],
     repairOrders: shiftsRes.data ?? [],
@@ -227,7 +238,10 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
   }
 
-  await ensureAndSyncProfile(user, false);
+  const existingProfile = (await ensureAndSyncProfile(user, false)) as Record<
+    string,
+    unknown
+  > | null;
 
   const patch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
@@ -254,6 +268,30 @@ export async function PATCH(req: NextRequest) {
   if (body.garage_bikes !== undefined) {
     patch.garage_bikes = sanitizeGarageBikes(body.garage_bikes);
   }
+  if (
+    body.social_handle !== undefined &&
+    existingProfile &&
+    'social_handle' in existingProfile
+  ) {
+    patch.social_handle = cleanStr(body.social_handle, 40);
+  }
+  if (
+    body.atlas_visibility !== undefined &&
+    existingProfile &&
+    'atlas_visibility' in existingProfile &&
+    (body.atlas_visibility === 'public' ||
+      body.atlas_visibility === 'anonymized' ||
+      body.atlas_visibility === 'hidden')
+  ) {
+    patch.atlas_visibility = body.atlas_visibility;
+  }
+  if (
+    body.v_circle_opt_in !== undefined &&
+    existingProfile &&
+    'v_circle_opt_in' in existingProfile
+  ) {
+    patch.v_circle_opt_in = Boolean(body.v_circle_opt_in);
+  }
 
   const { data: updated, error: updateError } = await adminDb
     .from('profiles')
@@ -264,6 +302,17 @@ export async function PATCH(req: NextRequest) {
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 400 });
+  }
+
+  if (typeof patch.atlas_visibility === 'string') {
+    try {
+      await adminDb
+        .from('visitor_pins')
+        .update({ visibility: patch.atlas_visibility })
+        .eq('user_id', user.userId);
+    } catch (pinSyncErr) {
+      console.warn('[profile] visitor_pins visibility sync failed:', pinSyncErr);
+    }
   }
 
   return NextResponse.json({ profile: updated });

@@ -3,6 +3,11 @@
 import { ArrowLeft, ExternalLink, FileScan, ShieldCheck, Timer } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
+import {
+  FLAT_RATE_MASTER_REFERRAL_URL,
+  FLAT_RATE_MASTER_REF_CODE,
+  trackShopEvent,
+} from '@/lib/analytics';
 import { useShopStore } from '@/store/useShopStore';
 import { withSpriteVersion } from '@/utils/spriteVersion';
 
@@ -170,16 +175,31 @@ export function FlatRateMasterModal() {
         </div>
 
         {/* Primary External CTA */}
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-2">
           <a
-            href="https://www.flatratemaster.com"
+            href={FLAT_RATE_MASTER_REFERRAL_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-4 border-black bg-emerald-400 px-5 py-3 text-sm font-black uppercase tracking-wide text-black shadow-[5px_5px_0px_#000] transition-transform hover:-translate-y-0.5 hover:bg-emerald-300"
+            data-analytics-event="poster_click_flatratemaster"
+            onClick={() =>
+              trackShopEvent(
+                'poster_click_flatratemaster',
+                {
+                  ref: FLAT_RATE_MASTER_REF_CODE,
+                  targetUrl: FLAT_RATE_MASTER_REFERRAL_URL,
+                  source: 'flat_rate_master_modal',
+                },
+                useShopStore.getState().authAccessToken,
+              )
+            }
+            className="flex items-center justify-center gap-2 rounded-2xl border-4 border-black bg-emerald-400 px-5 py-3 text-sm font-black uppercase tracking-wide text-black shadow-[5px_5px_0px_#000] transition-transform hover:-translate-y-0.5 hover:bg-emerald-300"
           >
-            <span>Visit www.flatratemaster.com</span>
+            <span>Start Free on Flat Rate Master</span>
             <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
           </a>
+          <p className="text-center text-[11px] font-bold text-zinc-600">
+            flatratemaster.com • Hard R Cycles Partner Referral ({FLAT_RATE_MASTER_REF_CODE})
+          </p>
         </div>
       </div>
     </dialog>

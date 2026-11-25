@@ -57,7 +57,22 @@ export default function PrivacyPage() {
 
       <section className="space-y-1.5">
         <h2 className="text-base font-black uppercase text-black">
-          4. Data Access &amp; Deletion
+          4. Shop Wall Atlas &amp; Coarse Location Privacy
+        </h2>
+        <p>
+          Signing the interactive <strong>Shop Wall Atlas</strong> Guest Book requires
+          Google or Apple Single Sign-On. When you check in, our API reads coarse
+          city/region edge headers, rounds coordinates to a 0.1-degree (~11km / ~7-mile)
+          grid, and immediately discards raw IP addresses without storing them. You can
+          switch your pin visibility anytime between <strong>Public</strong>,{' '}
+          <strong>City Only (&ldquo;Rider from [City]&rdquo;)</strong>, or{' '}
+          <strong>Hidden</strong> in the Atlas or your Garage Account settings.
+        </p>
+      </section>
+
+      <section className="space-y-1.5">
+        <h2 className="text-base font-black uppercase text-black">
+          5. Data Access &amp; Deletion
         </h2>
         <p>
           You can clear local cart and preference data at any time by clearing browser

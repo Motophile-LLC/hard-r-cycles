@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { UnifiedShopCanvasWrapper } from '@/components/canvas/UnifiedShopCanvasWrapper';
 import { TorqueMiniGame } from '@/components/minigames/TorqueMiniGame';
 import { WiringMiniGame } from '@/components/minigames/WiringMiniGame';
@@ -5,6 +6,7 @@ import { AccountModal } from '@/components/shop/AccountModal';
 import { FlatRateMasterModal } from '@/components/shop/FlatRateMasterModal';
 import { FrontDoorGateModal } from '@/components/shop/FrontDoorGateModal';
 import { ServiceCounterModal } from '@/components/shop/ServiceCounterModal';
+import { ShopDeepLinkRouter } from '@/components/shop/ShopDeepLinkRouter';
 import { ShopDrawer } from '@/components/shop/ShopDrawer';
 import { ShopFloorHUD } from '@/components/shop/ShopFloorHUD';
 import { StaffDialogueBox } from '@/components/shop/StaffDialogueBox';
@@ -13,6 +15,7 @@ import { ExtraBoltDialog } from '@/components/ui/ExtraBoltDialog';
 import { GameHUD } from '@/components/ui/GameHUD';
 import { RepairOrderModal } from '@/components/ui/RepairOrderModal';
 import { TutorialWalkthrough } from '@/components/ui/TutorialWalkthrough';
+import { ShopWallAtlasModal } from '@/features/atlas/ShopWallAtlasModal';
 
 export default function HomePage() {
   return (
@@ -25,8 +28,12 @@ export default function HomePage() {
       <ShopDrawer />
       <ServiceCounterModal />
       <FlatRateMasterModal />
+      <ShopWallAtlasModal />
       <AccountModal />
       <FrontDoorGateModal />
+      <Suspense fallback={null}>
+        <ShopDeepLinkRouter />
+      </Suspense>
 
       {/* Flat Rate Panic Service Bay Overlays */}
       <GameHUD />

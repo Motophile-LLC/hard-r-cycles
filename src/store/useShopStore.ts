@@ -3,8 +3,10 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
   ActiveAmbientCustomer,
   AmbientCustomerEvent,
+  AtlasPinDot,
   CameraFocusZone,
   CartItem,
+  CustomerMemoryRecord,
   LiveBayOccupant,
   OverheadBark,
   RackFilter,
@@ -79,11 +81,31 @@ export interface ShopStore {
   accountModalOpen: boolean;
   authAccessToken: string;
   userProfile: UserProfile | null;
+  customerMemory: CustomerMemoryRecord | null;
   isAdminUser: boolean;
+
+  highlightedDropHandle: string | null;
+  highlightedDropQuery: string | null;
+  referralSource: string | null;
+
+  atlasDots: AtlasPinDot[];
+  atlasTotalPins: number;
+  hasSignedAtlas: boolean;
+  atlasPromptDismissed: boolean;
 
   setHasHydrated: (hydrated: boolean) => void;
   setAccountModalOpen: (open: boolean) => void;
-  setAuthState: (token: string, profile: UserProfile | null, isAdmin: boolean) => void;
+  setAuthState: (
+    token: string,
+    profile: UserProfile | null,
+    isAdmin: boolean,
+    customerMemory?: CustomerMemoryRecord | null,
+  ) => void;
+  setCustomerMemory: (memory: CustomerMemoryRecord | null) => void;
+  setHighlightedDrop: (handle: string | null, fallbackLabel?: string | null) => void;
+  setReferralSource: (ref: string | null) => void;
+  setAtlasSummary: (dots: AtlasPinDot[], totalPins: number, hasSigned: boolean) => void;
+  dismissAtlasPrompt: () => void;
   setAgeVerified: (verified: boolean) => void;
   setCameraFocus: (zone: CameraFocusZone) => void;
   nudgeCameraYaw: (delta: number) => void;
@@ -141,18 +163,48 @@ export const useShopStore = create<ShopStore>()(
       accountModalOpen: false,
       authAccessToken: '',
       userProfile: null,
+      customerMemory: null,
       isAdminUser: false,
+
+      highlightedDropHandle: null,
+      highlightedDropQuery: null,
+      referralSource: null,
+
+      atlasDots: [],
+      atlasTotalPins: 0,
+      hasSignedAtlas: false,
+      atlasPromptDismissed: false,
 
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
       setAccountModalOpen: (open) => set({ accountModalOpen: open, idleSeconds: 0 }),
 
-      setAuthState: (token, profile, isAdmin) =>
+      setAuthState: (token, profile, isAdmin, customerMemory = null) =>
         set({
           authAccessToken: token,
           userProfile: profile,
           isAdminUser: isAdmin,
+          customerMemory: token ? customerMemory : null,
         }),
+
+      setCustomerMemory: (memory) => set({ customerMemory: memory }),
+
+      setHighlightedDrop: (handle, fallbackLabel = null) =>
+        set({
+          highlightedDropHandle: handle,
+          highlightedDropQuery: fallbackLabel ?? null,
+        }),
+
+      setReferralSource: (ref) => set({ referralSource: ref }),
+
+      setAtlasSummary: (dots, totalPins, hasSigned) =>
+        set({
+          atlasDots: dots,
+          atlasTotalPins: totalPins,
+          hasSignedAtlas: hasSigned,
+        }),
+
+      dismissAtlasPrompt: () => set({ atlasPromptDismissed: true }),
 
       setAgeVerified: (verified) => {
         if (verified && typeof window !== 'undefined') {
@@ -214,6 +266,8 @@ export const useShopStore = create<ShopStore>()(
           return {
             openDrawer: drawer,
             activeRackFilter: rackFilter ?? state.activeRackFilter,
+            highlightedDropHandle: drawer === null ? null : state.highlightedDropHandle,
+            highlightedDropQuery: drawer === null ? null : state.highlightedDropQuery,
             cameraFocus:
               drawer === 'APPAREL'
                 ? 'APPAREL'
@@ -221,9 +275,11 @@ export const useShopStore = create<ShopStore>()(
                   ? 'PARTS'
                   : drawer === 'SERVICE_COUNTER'
                     ? 'SERVICE'
-                    : resetToOverview
-                      ? 'OVERVIEW'
-                      : state.cameraFocus,
+                    : drawer === 'ATLAS'
+                      ? 'ATLAS'
+                      : resetToOverview
+                        ? 'OVERVIEW'
+                        : state.cameraFocus,
             cameraYawOffset: resetToOverview ? 0 : state.cameraYawOffset,
             cameraZoomDelta: resetToOverview ? 0 : state.cameraZoomDelta,
             idleSeconds: 0,

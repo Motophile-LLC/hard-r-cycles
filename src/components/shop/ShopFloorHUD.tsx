@@ -5,12 +5,14 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
+  MapPin,
   RotateCcw,
   Settings,
   UserCheck,
   UserCircle2,
   Volume2,
   VolumeX,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -19,9 +21,14 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { pickNextAmbientCustomer } from '@/data/ambientCustomers';
 import { FALLBACK_CATALOG } from '@/data/fallbackCatalog';
+import {
+  getDickLoiterBark,
+  resolveCustomerMemoryState,
+} from '@/features/npc-memory/resolver';
+import { trackShopEvent } from '@/lib/analytics';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import { useShopStore } from '@/store/useShopStore';
-import type { ShopProduct, UserProfile } from '@/types/shop';
+import type { AtlasPinDot, CustomerMemoryRecord, ShopProduct, UserProfile } from '@/types/shop';
 import { withSpriteVersion } from '@/utils/spriteVersion';
 
 export function ShopFloorHUD() {
@@ -40,6 +47,9 @@ export function ShopFloorHUD() {
   const authAccessToken = useShopStore((s) => s.authAccessToken);
   const userProfile = useShopStore((s) => s.userProfile);
   const isAdminUser = useShopStore((s) => s.isAdminUser);
+  const atlasTotalPins = useShopStore((s) => s.atlasTotalPins);
+  const hasSignedAtlas = useShopStore((s) => s.hasSignedAtlas);
+  const atlasPromptDismissed = useShopStore((s) => s.atlasPromptDismissed);
 
   const floorTickRef = useRef(0);
   const lastCustomerIdRef = useRef<string | undefined>(undefined);
@@ -64,6 +74,7 @@ export function ShopFloorHUD() {
           const json = (await res.json()) as {
             profile?: UserProfile;
             isAdmin?: boolean;
+            customerMemory?: CustomerMemoryRecord | null;
             rewards?: Array<{
               id: string;
               repair_order_id: string;
@@ -74,7 +85,12 @@ export function ShopFloorHUD() {
             }>;
           };
           const store = useShopStore.getState();
-          store.setAuthState(token, json.profile ?? null, Boolean(json.isAdmin));
+          store.setAuthState(
+            token,
+            json.profile ?? null,
+            Boolean(json.isAdmin),
+            json.customerMemory ?? null,
+          );
           for (const rw of json.rewards ?? []) {
             if (!rw.redeemed) {
               store.addUnlockedReward({
@@ -136,6 +152,40 @@ export function ShopFloorHUD() {
     };
   }, []);
 
+  // Hydrate Shop Wall Atlas LED pin preview on floor load & SSO session changes
+  useEffect(() => {
+    let active = true;
+    fetch('/api/atlas/pins?zoom=2', {
+      headers: authAccessToken
+        ? { Authorization: `Bearer ${authAccessToken}` }
+        : undefined,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (
+          data: {
+            boardDots?: AtlasPinDot[];
+            totalVisiblePins?: number;
+            myPin?: unknown;
+          } | null,
+        ) => {
+          if (!active || !data) return;
+          useShopStore
+            .getState()
+            .setAtlasSummary(
+              data.boardDots ?? [],
+              data.totalVisiblePins ?? 0,
+              Boolean(data.myPin),
+            );
+        },
+      )
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [authAccessToken]);
+
   // 30-second loitering banter + ambient customer chaos scheduler
   useEffect(() => {
     if (viewMode !== 'FLOOR' || !isAgeVerified) return;
@@ -153,19 +203,21 @@ export function ShopFloorHUD() {
 
       store.incrementIdleSeconds();
       const nextIdle = store.idleSeconds + 1;
+      const memState = resolveCustomerMemoryState(
+        store.customerMemory,
+        store.userProfile,
+      );
 
-      if (nextIdle === 30) {
-        store.pushOverheadBark(
-          'dick',
-          "Hey! Floor space ain't free—buy a shirt or get on a lift!",
-          5000,
-        );
+      if (nextIdle === memState.loiterWarningSeconds) {
+        store.pushOverheadBark('dick', getDickLoiterBark(memState, false), 5000);
         b2Timeout = window.setTimeout(() => {
           useShopStore
             .getState()
             .pushOverheadBark(
               'v',
-              'Ignore him, hon—he skipped lunch. Check the racks over here.',
+              memState.hasVipAccess
+                ? "Take your time, VIP—your Secret Stash rack is unlocked whenever you're ready."
+                : 'Ignore him, hon—he skipped lunch. Check the racks over here.',
               5000,
             );
         }, 2100);
@@ -174,6 +226,25 @@ export function ShopFloorHUD() {
             .getState()
             .pushOverheadBark('scooter', 'Wait... we get lunch?!', 4200);
         }, 4200);
+      } else if (nextIdle >= memState.loiterKickSeconds) {
+        store.pushOverheadBark('dick', getDickLoiterBark(memState, true), 5600);
+        store.resetIdleSeconds();
+
+        if (store.authAccessToken && !memState.hasVipAccess) {
+          fetch('/api/memory/loiter', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${store.authAccessToken}`,
+            },
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data: { customerMemory?: CustomerMemoryRecord | null } | null) => {
+              if (data?.customerMemory) {
+                useShopStore.getState().setCustomerMemory(data.customerMemory);
+              }
+            })
+            .catch(() => undefined);
+        }
       }
 
       // Spawn a visiting customer gag ~8s after entering, then every 30s when clear
@@ -236,6 +307,22 @@ export function ShopFloorHUD() {
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-700" />
               <span>{displayedTechCount} Techs On Clock</span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                trackShopEvent('atlas_open', { source: 'header_hud' }, authAccessToken);
+                useShopStore.getState().setOpenDrawer('ATLAS');
+              }}
+              aria-label={`Open Shop Wall Atlas with ${atlasTotalPins} pinned riders`}
+              className="flex cursor-pointer items-center gap-1 rounded-xl border-3 border-black bg-emerald-200 px-2 py-1.5 text-[11px] font-black uppercase text-black shadow-[3px_3px_0px_#000] hover:bg-emerald-300 sm:gap-1.5 sm:px-2.5"
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-900" aria-hidden="true" />
+              <span className="hidden sm:inline">Atlas</span>
+              <span className="rounded-md bg-black px-1.5 py-0.5 text-[10px] text-emerald-300">
+                {atlasTotalPins}
+              </span>
+            </button>
 
             <button
               type="button"
@@ -326,6 +413,43 @@ export function ShopFloorHUD() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               <span>Back to Full Shop</span>
             </button>
+          </div>
+        ) : isAgeVerified &&
+          !hasSignedAtlas &&
+          !atlasPromptDismissed &&
+          !openDrawer &&
+          !activeDialogue &&
+          cameraFocus === 'OVERVIEW' ? (
+          <div className="flex justify-center">
+            <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border-3 border-black bg-amber-100 px-3 py-1.5 text-xs font-bold text-black shadow-[4px_4px_0px_#000]">
+              <MapPin className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+              <span className="hidden sm:inline">
+                First stop inside the door: drop your pin on the Shop Wall Guest Book!
+              </span>
+              <span className="sm:hidden">Sign the Shop Wall Guest Book!</span>
+              <button
+                type="button"
+                onClick={() => {
+                  trackShopEvent(
+                    'atlas_open',
+                    { source: 'welcome_banner' },
+                    authAccessToken,
+                  );
+                  useShopStore.getState().setOpenDrawer('ATLAS');
+                }}
+                className="cursor-pointer rounded-xl border-2 border-black bg-emerald-400 px-2.5 py-1 text-[11px] font-black uppercase text-black hover:bg-emerald-300"
+              >
+                Sign Wall
+              </button>
+              <button
+                type="button"
+                aria-label="Dismiss Guest Book prompt"
+                onClick={() => useShopStore.getState().dismissAtlasPrompt()}
+                className="cursor-pointer rounded-lg border border-black bg-white p-1 text-black hover:bg-zinc-200"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         ) : null}
       </div>

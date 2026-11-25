@@ -4,11 +4,14 @@ import { ArrowLeft, ExternalLink, Send, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { resolveStaffReply } from '@/data/staffDialogue';
+import { resolveCustomerMemoryState } from '@/features/npc-memory/resolver';
 import { useShopStore } from '@/store/useShopStore';
 
 export function StaffDialogueBox() {
   const activeDialogue = useShopStore((s) => s.activeDialogue);
   const products = useShopStore((s) => s.products);
+  const customerMemory = useShopStore((s) => s.customerMemory);
+  const userProfile = useShopStore((s) => s.userProfile);
   const [input, setInput] = useState('');
   const composingRef = useRef(false);
 
@@ -28,7 +31,8 @@ export function StaffDialogueBox() {
   const submitQuestion = (text: string) => {
     const clean = text.trim();
     if (!clean) return;
-    const reply = resolveStaffReply(activeDialogue.staffId, clean, products);
+    const memState = resolveCustomerMemoryState(customerMemory, userProfile);
+    const reply = resolveStaffReply(activeDialogue.staffId, clean, products, memState);
     useShopStore.getState().setActiveDialogue(reply);
     setInput('');
   };
@@ -69,6 +73,11 @@ export function StaffDialogueBox() {
                 <span className="rounded-md border border-black bg-red-600 px-1.5 py-0.5 text-[10px] font-black uppercase text-white">
                   {activeDialogue.moodLabel}
                 </span>
+                {activeDialogue.tierBadge ? (
+                  <span className="rounded-md border border-black bg-amber-300 px-1.5 py-0.5 text-[10px] font-black uppercase text-black">
+                    {activeDialogue.tierBadge}
+                  </span>
+                ) : null}
               </div>
 
               <button

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { getStaffGreeting } from '@/data/staffDialogue';
+import { resolveCustomerMemoryState } from '@/features/npc-memory/resolver';
 import { useShopStore } from '@/store/useShopStore';
 import { withSpriteVersion } from '@/utils/spriteVersion';
 
@@ -140,9 +141,13 @@ export function ServiceCounterModal() {
           <button
             type="button"
             onClick={() => {
-              const products = useShopStore.getState().products;
-              useShopStore.getState().setOpenDrawer(null);
-              useShopStore.getState().setActiveDialogue(getStaffGreeting('dick', products));
+              const store = useShopStore.getState();
+              const memState = resolveCustomerMemoryState(
+                store.customerMemory,
+                store.userProfile,
+              );
+              store.setOpenDrawer(null);
+              store.setActiveDialogue(getStaffGreeting('dick', store.products, memState));
             }}
             className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-3 border-black bg-amber-300 px-4 py-2.5 text-xs font-black uppercase text-black shadow-[4px_4px_0px_#000] hover:bg-amber-200"
           >

@@ -4,6 +4,7 @@ import { Edges } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { trackShopEvent } from '@/lib/analytics';
 import { useShopStore } from '@/store/useShopStore';
 import { SafeHtml as Html } from './SafeHtml';
 import { TOON_GRADIENT_MAP } from './ToonMaterial';
@@ -328,6 +329,11 @@ export function FlatRateMasterPoster({
       position={position}
       onClick={(e) => {
         e.stopPropagation();
+        trackShopEvent(
+          'poster_open_flatratemaster',
+          { source: '3d_wall_poster' },
+          useShopStore.getState().authAccessToken,
+        );
         useShopStore.getState().setOpenDrawer('FLAT_RATE_MASTER');
       }}
       onPointerOver={(e) => {

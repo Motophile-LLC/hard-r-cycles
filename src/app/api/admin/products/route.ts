@@ -9,6 +9,9 @@ const VALID_RACK_SLOTS: RackSlot[] = [
   'wall_braap',
   'parts_shelf',
   'hard_r_originals',
+  'motophile_partner',
+  'episode_drops',
+  'vip_secret_stash',
 ];
 
 const VALID_DEPARTMENTS: ShopDepartment[] = ['APPAREL', 'PARTS'];

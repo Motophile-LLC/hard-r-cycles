@@ -1,9 +1,30 @@
+import type {
+  AtlasPinDot,
+  AtlasVisibility,
+} from '@/features/atlas/types';
+import type {
+  CustomerMemoryRecord,
+  CustomerTier,
+  ResolvedNpcMemoryState,
+} from '@/features/npc-memory/types';
+
+export type {
+  AtlasPinDot,
+  AtlasVisibility,
+  CustomerMemoryRecord,
+  CustomerTier,
+  ResolvedNpcMemoryState,
+};
+
 export type RackSlot =
   | 'rack_1_humor'
   | 'rack_2_definition'
   | 'wall_braap'
   | 'parts_shelf'
-  | 'hard_r_originals';
+  | 'hard_r_originals'
+  | 'motophile_partner'
+  | 'episode_drops'
+  | 'vip_secret_stash';
 
 export type ShopDepartment = 'APPAREL' | 'PARTS';
 
@@ -36,7 +57,8 @@ export type CameraFocusZone =
   | 'APPAREL'
   | 'PARTS'
   | 'SERVICE'
-  | 'BAYS';
+  | 'BAYS'
+  | 'ATLAS';
 
 export type ShopDrawerKind =
   | null
@@ -45,6 +67,7 @@ export type ShopDrawerKind =
   | 'QUICK_SHOP'
   | 'SERVICE_COUNTER'
   | 'FLAT_RATE_MASTER'
+  | 'ATLAS'
   | 'CART';
 
 export type RackFilter =
@@ -52,7 +75,10 @@ export type RackFilter =
   | 'rack_1_humor'
   | 'rack_2_definition'
   | 'wall_braap'
-  | 'hard_r_originals';
+  | 'hard_r_originals'
+  | 'motophile_partner'
+  | 'episode_drops'
+  | 'vip_secret_stash';
 
 export type StaffId = 'v' | 'dick' | 'scooter';
 
@@ -84,6 +110,7 @@ export interface StaffDialogueState {
   staffId: StaffId;
   portraitId: string;
   moodLabel: string;
+  tierBadge?: string;
   speakerName: string;
   speakerRole: string;
   message: string;
@@ -168,6 +195,10 @@ export interface UserProfile {
   default_shipping_address: ShippingAddress | null;
   garage_bikes: GarageBike[];
   marketing_opt_in: boolean;
+  social_handle?: string;
+  atlas_visibility?: 'public' | 'anonymized' | 'hidden';
+  v_circle_opt_in?: boolean;
+  visit_count?: number;
   sign_in_count: number;
   last_seen_at: string;
   created_at: string;

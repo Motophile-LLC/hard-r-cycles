@@ -5,6 +5,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { getStaffGreeting, resolveStaffReply } from '@/data/staffDialogue';
+import { resolveCustomerMemoryState } from '@/features/npc-memory/resolver';
+import { ShopWallAtlas3D } from '@/features/atlas/ShopWallAtlas3D';
 import { useShopStore } from '@/store/useShopStore';
 import type {
   AmbientCustomerEvent,
@@ -48,6 +50,7 @@ const CAMERA_PRESETS: Record<
   PARTS: { pos: [1.3, 3.15, 6.0], look: [-2.5, 1.1, 2.0] },
   SERVICE: { pos: [0.65, 3.05, 1.45], look: [-0.5, 1.38, -3.5] },
   BAYS: { pos: [9.2, 5.8, 6.8], look: [4.6, 1.1, 0.35] },
+  ATLAS: { pos: [-3.3, 2.75, 4.15], look: [-8.08, 2.42, 3.85] },
 };
 
 function DealershipCameraRig() {
@@ -136,10 +139,12 @@ function AmbientCustomerMesh({ event }: { event: AmbientCustomerEvent }) {
 
   const handleInteract = () => {
     const store = useShopStore.getState();
+    const memState = resolveCustomerMemoryState(store.customerMemory, store.userProfile);
     const reply = resolveStaffReply(
       event.staffResponder,
       event.suggestedQuery,
       store.products,
+      memState,
     );
     store.setActiveDialogue({
       ...reply,
@@ -298,8 +303,9 @@ function StaffCharacterStandee({
   }, [bark, staffId]);
 
   const handleChat = () => {
-    const products = useShopStore.getState().products;
-    useShopStore.getState().setActiveDialogue(getStaffGreeting(staffId, products));
+    const store = useShopStore.getState();
+    const memState = resolveCustomerMemoryState(store.customerMemory, store.userProfile);
+    store.setActiveDialogue(getStaffGreeting(staffId, store.products, memState));
   };
 
   return (
@@ -937,6 +943,9 @@ export function DealershipScene() {
             );
         }}
       />
+
+      {/* Interactive 3D Shop Wall Atlas Guest Book on Left Entry Wall */}
+      <ShopWallAtlas3D position={[-8.08, 2.42, 3.85]} rotationY={Math.PI / 2} />
 
       {/* ================= ZONE 2: VOLUMETRIC 3D APPAREL RACKS, HATS & V ================= */}
       <ApparelRack3D

@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { SsoSignInButtons } from '@/components/auth/SsoSignInButtons';
+import { resolveCustomerMemoryState } from '@/features/npc-memory/resolver';
 import { getSupabaseBrowserAuthClient } from '@/lib/supabaseClient';
 import type {
   CheckoutMode,
+  CustomerMemoryRecord,
   RackSlot,
   ShopDepartment,
   ShopProduct,
@@ -42,6 +44,7 @@ interface AdminUserRow extends UserProfile {
   shiftCount: number;
   bestEfficiency: number;
   rewardCount: number;
+  customerMemory?: CustomerMemoryRecord | null;
 }
 
 interface AdminOrderRow {
@@ -102,6 +105,7 @@ export function AdminDashboardClient() {
 
   // Admin workspace data
   const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [memoryTableReady, setMemoryTableReady] = useState(true);
   const [userSearch, setUserSearch] = useState('');
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [adminProducts, setAdminProducts] = useState<ShopProduct[]>([]);
@@ -157,9 +161,13 @@ export function AdminDashboardClient() {
       ]);
 
       if (usrRes.ok) {
-        const uJson = (await usrRes.json()) as { users?: AdminUserRow[] };
+        const uJson = (await usrRes.json()) as {
+          users?: AdminUserRow[];
+          memoryTableReady?: boolean;
+        };
         const loadedUsers = uJson.users ?? [];
         setUsers(loadedUsers);
+        setMemoryTableReady(uJson.memoryTableReady !== false);
         const nextNotes: Record<string, string> = {};
         for (const u of loadedUsers) {
           nextNotes[u.id] = u.notes ?? '';
@@ -298,6 +306,37 @@ export function AdminDashboardClient() {
       return;
     }
     setActionNotice('Saved internal rider note.');
+    await loadWorkspaceData(accessToken);
+  };
+
+  const handleApplyMemoryPreset = async (
+    userRow: AdminUserRow,
+    memoryPreset:
+      | 'reset'
+      | 'window_shopper'
+      | 'first_time_buyer'
+      | 'vip_supporter'
+      | 'repeat_diagnostic',
+  ) => {
+    if (!accessToken) return;
+    setActionError(null);
+    setActionNotice(null);
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: userRow.id, memoryPreset }),
+    });
+    const json = (await res.json()) as { error?: string };
+    if (!res.ok) {
+      setActionError(json.error ?? 'Unable to apply customer memory preset.');
+      return;
+    }
+    setActionNotice(
+      `Applied "${memoryPreset}" Dick memory preset for ${userRow.display_name || userRow.email}.`,
+    );
     await loadWorkspaceData(accessToken);
   };
 
@@ -552,6 +591,12 @@ export function AdminDashboardClient() {
           {/* TAB 1: USERS & ADMIN ACCESS */}
           {activeTab === 'users' ? (
             <div className="space-y-3">
+              {!memoryTableReady ? (
+                <div className="rounded-2xl border-3 border-black bg-amber-200 p-3.5 text-xs font-bold text-black shadow-[3px_3px_0px_#000]">
+                  Run <code>supabase/migrations/005_phase2_memory_atlas_and_racks.sql</code> in the Supabase SQL Editor to enable live <strong>Dick&apos;s Customer Memory</strong> persistence and 1-click tier testing presets.
+                </div>
+              ) : null}
+
               <search className="block">
                 <div className="relative">
                   <Search
@@ -576,6 +621,15 @@ export function AdminDashboardClient() {
               ) : (
                 filteredUsers.map((usr) => {
                   const bikes = Array.isArray(usr.garage_bikes) ? usr.garage_bikes : [];
+                  const memState = resolveCustomerMemoryState(
+                    usr.customerMemory ?? null,
+                    usr,
+                  );
+                  const memOrders = usr.customerMemory?.total_orders ?? usr.orderCount;
+                  const memSpend =
+                    usr.customerMemory?.lifetime_spend ?? usr.lifetimeSpend;
+                  const memDiags = usr.customerMemory?.diagnostic_count ?? 0;
+                  const memKicks = usr.customerMemory?.loiter_kick_count ?? 0;
                   return (
                     <div
                       key={usr.id}
@@ -606,11 +660,32 @@ export function AdminDashboardClient() {
                                   ? 'Admin'
                                   : 'Customer'}
                             </span>
+                            <span
+                              className={`rounded border border-black px-2 py-0.5 text-[10px] font-black uppercase ${
+                                memState.tier === 'VIP_SUPPORTER'
+                                  ? 'bg-amber-400 text-black'
+                                  : memState.tier === 'WINDOW_SHOPPER'
+                                    ? 'bg-red-200 text-red-950'
+                                    : memState.tier === 'FIRST_TIME_BUYER'
+                                      ? 'bg-emerald-200 text-black'
+                                      : memState.tier === 'REPEAT_DIAGNOSTIC'
+                                        ? 'bg-cyan-200 text-black'
+                                        : 'bg-zinc-100 text-zinc-700'
+                              }`}
+                            >
+                              Dick: {memState.tierBadge}
+                            </span>
                           </div>
                           <p className="text-xs font-bold text-zinc-600">
                             {usr.email} • Handle:{' '}
                             <span className="text-black">{usr.mechanic_handle || '—'}</span> •
-                            Sign-ins: <span className="text-black">{usr.sign_in_count}</span>
+                            Visits:{' '}
+                            <span className="text-black">{memState.visitCount}</span> •
+                            Memory Orders:{' '}
+                            <span className="text-black">{memOrders}</span> ($
+                            {Number(memSpend).toFixed(2)}) • Diags:{' '}
+                            <span className="text-black">{memDiags}</span> • Loiter Kicks:{' '}
+                            <span className="text-black">{memKicks}</span>
                           </p>
                         </div>
 
@@ -714,6 +789,31 @@ export function AdminDashboardClient() {
                         >
                           Save Note
                         </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-dashed border-black/30 bg-zinc-50 px-3 py-2 text-[11px] font-bold">
+                        <span className="mr-1 font-black uppercase text-zinc-600">
+                          Test Dick&apos;s Tier:
+                        </span>
+                        {(
+                          [
+                            ['reset', 'Reset'],
+                            ['window_shopper', 'Window Shopper'],
+                            ['first_time_buyer', 'Buyer'],
+                            ['vip_supporter', 'VIP'],
+                            ['repeat_diagnostic', 'Repeat Diag'],
+                          ] as const
+                        ).map(([presetKey, label]) => (
+                          <button
+                            key={presetKey}
+                            type="button"
+                            disabled={!memoryTableReady}
+                            onClick={() => handleApplyMemoryPreset(usr, presetKey)}
+                            className="cursor-pointer rounded-lg border-2 border-black bg-white px-2.5 py-1 text-[10px] font-black uppercase text-black hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   );
@@ -847,6 +947,9 @@ export function AdminDashboardClient() {
                         className="min-h-12 w-full rounded-xl border-2 border-black bg-white px-3 text-base font-bold"
                       >
                         <option value="hard_r_originals">Hard R Originals</option>
+                        <option value="episode_drops">Episode Drops</option>
+                        <option value="vip_secret_stash">VIP Secret Stash</option>
+                        <option value="motophile_partner">Motophile Partner Rack</option>
                         <option value="rack_1_humor">Rack 1: Humor</option>
                         <option value="rack_2_definition">Rack 2: Definition</option>
                         <option value="wall_braap">Wall: Braap</option>
